@@ -1512,8 +1512,8 @@ function renderWeekly(weekData, currentWeek) {
    si falla intenta Google Sheets. Así funciona offline y online.
 --------------------------------------------------------------- */
 function loadCSV() {
-    var sheetId = 'your_google_sheet_id';
-    var url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+    var sheetId = 'seguimiento_practica';
+    var url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTz_JPN19_XgTk2ax8Xndu3M3NpILEW96KWDYxq_S_EOf3OPBiHKYNnASOfQhY7hg/pub?gid=1087789345&single=true&output=csv`;
 
     // Try loading from Google Sheets first
     fetch(url)
