@@ -1511,47 +1511,87 @@ function renderWeekly(weekData, currentWeek) {
    Estrategia: intenta primero "datos.csv" local (mismo directorio),
    si falla intenta Google Sheets. Así funciona offline y online.
 --------------------------------------------------------------- */
-async function loadCSV() {
-    const googleUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTz_JPN19_XgTk2ax8Xndu3M3NpILEW96KWDYxq_S_EOf3OPBiHKYNnASOfQhY7hg/pub?gid=1087789345&single=true&output=csv';
-    const localUrl = 'datos.csv';
+const CSV_LOCAL = 'datos.csv';
+const CSV_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTz_JPN19_XgTk2ax8Xndu3M3NpILEW96KWDYxq_S_EOf3OPBiHKYNnASOfQhY7hg/pub?gid=1087789345&single=true&output=csv';
 
-    // Función auxiliar para poner un tiempo límite a la carga
-    const fetchWithTimeout = (url, ms) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), ms);
-        return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timeoutId));
-    };
+function mostrarError(msg) {
+    const html = `<div class="csv-error">⚠️ ${msg}</div>`;
+    ['kpi-panel','fase-analysis','activities-wrap','weekly-section'].forEach(id => {
+        document.getElementById(id).innerHTML = html;
+    });
+}
 
-    try {
-        console.log("Intentando cargar desde Google Sheets...");
-        // Intentamos cargar Google Sheets con un límite de 3 segundos
-        const response = await fetchWithTimeout(googleUrl, 3000);
-        
-        if (!response.ok) throw new Error('Error en respuesta de Google');
-        
-        const data = await response.text();
-        parseCSV(data);
-        console.log("✅ Datos cargados desde Google Sheets");
+function mostrarLoader(msg) {
+    const html = `<div class="csv-loader"><div class="spinner"></div><div>${msg}</div></div>`;
+    ['kpi-panel','fase-analysis','activities-wrap','weekly-section'].forEach(id => {
+        document.getElementById(id).innerHTML = html;
+    });
+}
 
-    } catch (error) {
-        console.warn("⚠️ Google Sheets falló o tardó demasiado. Usando copia local...", error.message);
-        
-        try {
-            const localResponse = await fetch(localUrl);
-            if (!localResponse.ok) throw new Error('Archivo local no encontrado');
-            
-            const localData = await localResponse.text();
-            parseCSV(localData);
-            console.log("📂 Datos cargados desde datos.csv (Local)");
-            
-        } catch (localError) {
-            console.error("❌ Error crítico: No se pudo cargar ninguna fuente.", localError);
-            // Aquí podrías ocultar los círculos de carga y mostrar un mensaje de error al usuario
-            document.getElementById('loading-spinner').style.display = 'none'; 
-        }
+async function fetchCSV(url) {
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+}
+
+async function procesarTextoCSV(text, fuente) {
+    const { actRows, weeklyRows } = parseCSVDual(text);
+
+    if (actRows.length === 0) {
+        throw new Error(`El CSV de "${fuente}" no contiene filas de actividades válidas.`);
+    }
+
+    console.log(`✅ CSV cargado desde: ${fuente} | Actividades: ${actRows.length} | Semanas: ${weeklyRows.length}`);
+
+    // Detectar semana actual: última semana con progreso > 0
+    const conProgreso = actRows.filter(r => toNum(getField(r, 'Progreso_manual_(0–100)')) > 0);
+    const currentWeek = conProgreso.length
+        ? Math.max(...conProgreso.map(r => toNum(getField(r, 'Semana proyecto'))))
+        : 1;
+
+    renderKPI(actRows, currentWeek);
+    renderFases(actRows);
+    renderActivities(actRows);
+
+    if (weeklyRows.length > 0) {
+        renderWeekly(weeklyRows, currentWeek);
+    } else {
+        buildWeeklyFromActivities(actRows, currentWeek);
     }
 }
 
+async function loadCSV() {
+    mostrarLoader('Cargando datos…');
+
+    // Intento 1: archivo local datos.csv
+    try {
+        const text = await fetchCSV(CSV_LOCAL);
+        await procesarTextoCSV(text, 'datos.csv (local)');
+        return;
+    } catch(e) {
+        console.warn('datos.csv local no disponible:', e.message);
+    }
+
+    // Intento 2: Google Sheets público
+    try {
+        mostrarLoader('Conectando con Google Sheets…');
+        const text = await fetchCSV(CSV_URL);
+        await procesarTextoCSV(text, 'Google Sheets');
+        return;
+    } catch(e) {
+        console.error('Google Sheets falló:', e.message);
+    }
+
+    // Ambos fallaron
+    mostrarError(
+        `No se pudo cargar el CSV desde ninguna fuente.<br><br>
+        <strong>Opción A (recomendada):</strong> Coloca <code>datos.csv</code> en la misma carpeta que <code>index.html</code> y abre el archivo desde un servidor local.<br>
+        <strong>Opción B:</strong> Abre con Live Server en VS Code, o ejecuta en terminal:<br>
+        <code style="background:#f1f5f9;padding:4px 8px;border-radius:4px;">python3 -m http.server 8080</code><br>
+        y accede a <code>http://localhost:8080</code><br><br>
+        <em>Nota: Los navegadores bloquean fetch() en archivos abiertos directamente con file://</em>`
+    );
+}
 /* ---------------------------------------------------------------
    10. INICIALIZACIÓN
 --------------------------------------------------------------- */
