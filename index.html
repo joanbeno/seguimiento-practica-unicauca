@@ -1511,74 +1511,45 @@ function renderWeekly(weekData, currentWeek) {
    Estrategia: intenta primero "datos.csv" local (mismo directorio),
    si falla intenta Google Sheets. Así funciona offline y online.
 --------------------------------------------------------------- */
-function loadCSV() {
-    var sheetId = 'seguimiento_practica';
-    var url = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTz_JPN19_XgTk2ax8Xndu3M3NpILEW96KWDYxq_S_EOf3OPBiHKYNnASOfQhY7hg/pub?gid=1087789345&single=true&output=csv`;
+async function loadCSV() {
+    const googleUrl = 'https://docs.google.com';
+    const localUrl = 'datos.csv';
 
-    // Try loading from Google Sheets first
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.text();
-        })
-        .then(data => {
-            // Process data from Google Sheets
-            parseCSV(data);
-        })
-        .catch(error => {
-            console.error('Loading from Google Sheets failed, falling back to local CSV:', error);
-            // Fallback to loading local datos.csv
-            fetch('datos.csv')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    // Process data from local CSV
-                    parseCSV(data);
-                })
-                .catch(error => {
-                    console.error('Loading from local CSV failed:', error);
-                });
-        });
-}
-/* ---------------------------------------------------------------
-   9. CONSTRUCCIÓN SEMANAL DESDE ACTIVIDADES (FALLBACK)
---------------------------------------------------------------- */
-function buildWeeklyFromActivities(acts, currentWeek) {
-    const map = {};
+    // Función auxiliar para poner un tiempo límite a la carga
+    const fetchWithTimeout = (url, ms) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), ms);
+        return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+    };
 
-    acts.forEach(r => {
-        const s = getField(r, 'Semana proyecto') || '0';
-        if (!map[s]) map[s] = { sp: 0, sr: 0, se: 0, fechaI: getField(r, 'Fecha Inicio', 'Fecha inicio') || '—' };
-        const p = toNum(getField(r, 'Peso pct'));
-        map[s].sp += p;
-        map[s].sr += p * toNum(getField(r, 'Progreso_manual_(0–100)')) / 100;
-        map[s].se += p * toNum(getField(r, 'Avance esperado'))          / 100;
-    });
+    try {
+        console.log("Intentando cargar desde Google Sheets...");
+        // Intentamos cargar Google Sheets con un límite de 3 segundos
+        const response = await fetchWithTimeout(googleUrl, 3000);
+        
+        if (!response.ok) throw new Error('Error en respuesta de Google');
+        
+        const data = await response.text();
+        parseCSV(data);
+        console.log("✅ Datos cargados desde Google Sheets");
 
-    const weeklyRows = Object.keys(map)
-        .sort((a, b) => +a - +b)
-        .map(s => {
-            const d    = map[s];
-            const real = d.sp > 0 ? (d.sr / d.sp * 100) : 0;
-            const esp  = d.sp > 0 ? (d.se / d.sp * 100) : 0;
-            const diff = real - esp;
-            return {
-                'Semana':                    s,
-                'Fecha inicio semana':       d.fechaI,
-                'Progreso real ponderado':   real,
-                'Avance esperado semana':    esp,
-                'Diferencia semanal':        diff,
-                'Alerta semanal':            diff < -15 ? 'Retraso Crítico' : diff < 0 ? 'Retraso Leve' : 'OK'
-            };
-        });
-
-    renderWeekly(weeklyRows, currentWeek);
+    } catch (error) {
+        console.warn("⚠️ Google Sheets falló o tardó demasiado. Usando copia local...", error.message);
+        
+        try {
+            const localResponse = await fetch(localUrl);
+            if (!localResponse.ok) throw new Error('Archivo local no encontrado');
+            
+            const localData = await localResponse.text();
+            parseCSV(localData);
+            console.log("📂 Datos cargados desde datos.csv (Local)");
+            
+        } catch (localError) {
+            console.error("❌ Error crítico: No se pudo cargar ninguna fuente.", localError);
+            // Aquí podrías ocultar los círculos de carga y mostrar un mensaje de error al usuario
+            document.getElementById('loading-spinner').style.display = 'none'; 
+        }
+    }
 }
 
 /* ---------------------------------------------------------------
