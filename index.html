@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronograma - Práctica en IA para Proyectos Públicos</title>
+
+    <!-- ============================================================
+         ESTILOS — IDENTIDAD INSTITUCIONAL UNIVERSIDAD DEL CAUCA
+         Paleta: #000066 (Azul institucional) | #D22630 (Rojo Unicauca)
+         Tipografía: Tahoma (obligatorio en todo el sistema)
+    ============================================================ -->
+    <style>
+
+        /* ---- RESET Y BASE ---- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Tahoma, sans-serif;
+            background: #F8FAFC;
+            padding: 30px 15px;
+            min-height: 100vh;
+        }
+
+        /* ---- CONTENEDOR PRINCIPAL ---- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            overflow: hidden;
+        }
+
+        /* ---- HEADER INSTITUCIONAL ---- */
+        .header {
+            background: #000066;
+            color: white;
+            padding: 28px 40px;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .header-logo {
+            width: 84px;
+            height: 84px;
+            flex-shrink: 0;
+            background: white;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .header-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .header-text { flex: 1; }
+
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .header .subtitle {
+            font-size: 13px;
+            opacity: 0.88;
+            margin-bottom: 4px;
+        }
+
+        .header .university {
+            font-size: 11px;
+            opacity: 0.65;
+        }
+
+        /* Stats en header */
+        .stats-grid {
+            display: flex;
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
+        .stat-box {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 12px 18px;
+            border-radius: 6px;
+            min-width: 82px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .stat-value { font-size: 19px; font-weight: 700; }
+
+        /* ---- NAVEGACIÓN PESTAÑAS ---- */
+        .nav-tabs {
+            display: flex;
+            background: #f0f2fa;
+            border-bottom: 2px solid #dde2f0;
+            padding: 0 40px;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 13px 22px;
+            font-family: Tahoma, sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            transition: color 0.2s, border-color 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .nav-tab:hover { color: #000066; }
+        .nav-tab.active { color: #000066; border-bottom-color: #D22630; }
+
+        /* ---- SECCIONES PESTAÑAS ---- */
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+
+        /* ---- CONTENIDO GENERAL ---- */
+        .content { padding: 36px 40px; }
+
+        /* ---- TÍTULOS DE SECCIÓN ---- */
+        .section-block-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #000066;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #eef0f5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ============================================================
+           DASHBOARD KPI
+        ============================================================ */
+        .kpi-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+
+        .kpi-card {
+            background: white;
+            border-radius: 8px;
+            padding: 18px 20px;
+            border-left: 4px solid #000066;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
+            position: relative;
+        }
+
+        .kpi-card.alert   { border-left-color: #D22630; }
+        .kpi-card.success { border-left-color: #16a34a; }
+        .kpi-card.warning { border-left-color: #d97706; }
+        .kpi-card.info    { border-left-color: #000066; }
+
+        .kpi-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 30px;
+            font-weight: 700;
+            color: #1A1A1A;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .kpi-sub { font-size: 11px; color: #999; }
+
+        .kpi-trend {
+            position: absolute;
+            top: 14px; right: 14px;
+            font-size: 18px;
+        }
+
+        /* ============================================================
+           ANÁLISIS POR FASE
+        ============================================================ */
+        .fase-analysis {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+
+        .fase-item {
+            padding: 18px 22px;
+            border-bottom: 1px solid #eef0f5;
+        }
+
+        .fase-item:last-child { border-bottom: none; }
+
+        .fase-row-top {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .fase-num {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: #000066;
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .fase-name { font-weight: 700; color: #000066; font-size: 13px; flex: 1; }
+        .fase-pct  { font-size: 20px; font-weight: 700; color: #1A1A1A; }
+
+        .fase-progress-track {
+            background: #eef0f5;
+            border-radius: 99px;
+            height: 9px;
+            position: relative;
+        }
+
+        .fase-progress-real {
+            height: 9px;
+            border-radius: 99px;
+            background: #16a34a;
+            transition: width 0.7s ease;
+        }
+
+        .fase-progress-expected {
+            position: absolute;
+            top: -3px; bottom: -3px;
+            width: 3px;
+            background: #000066;
+            border-radius: 2px;
+        }
+
+        .fase-meta-row {
+            display: flex;
+            gap: 18px;
+            margin-top: 7px;
+            font-size: 11px;
+            color: #888;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================================
+           TABLA DE ACTIVIDADES
+        ============================================================ */
+        .activities-table-wrap {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+
+        .table-header-bar {
+            background: #000066;
+            color: white;
+            padding: 12px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .activities-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .activities-table thead th {
+            background: #f0f2fa;
+            color: #000066;
+            padding: 11px 13px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dde2f0;
+            white-space: nowrap;
+        }
+
+        .activities-table tbody tr.act-row {
+            cursor: pointer;
+            border-bottom: 1px solid #eef0f5;
+            transition: background 0.15s;
+        }
+
+        .activities-table tbody tr.act-row:hover { background: #f8f9fc; }
+        .activities-table td { padding: 11px 13px; vertical-align: middle; color: #333; }
+
+        .act-desc-row { display: none; }
+        .act-desc-row.open { display: table-row; }
+
+        .act-desc-cell {
+            background: #f8f9fc;
+            padding: 12px 22px 12px 36px;
+            border-bottom: 1px solid #dde2f0;
+            color: #555;
+            font-size: 12px;
+            line-height: 1.7;
+            font-style: italic;
+        }
+
+        /* Barras de progreso */
+        .progress-wrap { min-width: 130px; }
+
+        .progress-label {
+            display: flex; justify-content: space-between;
+            font-size: 10px; color: #888; margin-bottom: 4px;
+        }
+
+        .progress-track {
+            background: #eef0f5;
+            border-radius: 99px;
+            height: 7px;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 7px;
+            border-radius: 99px;
+            transition: width 0.6s ease;
+        }
+
+        .progress-bar.real       { background: #16a34a; }
+        .progress-bar.real.warn  { background: #d97706; }
+        .progress-bar.real.crit  { background: #D22630; }
+
+        .progress-expected-line {
+            position: absolute;
+            top: -2px; bottom: -2px;
+            width: 2px;
+            background: #000066;
+            border-radius: 2px;
+            opacity: 0.55;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-ok      { background: #dcfce7; color: #15803d; }
+        .badge-warn    { background: #fef3c7; color: #92400e; }
+        .badge-crit    { background: #fee2e2; color: #991b1b; }
+        .badge-info    { background: #e0e7ff; color: #3730a3; }
+        .badge-neutral { background: #f1f5f9; color: #475569; }
+
+        /* Ícono expandir */
+        .expand-icon {
+            display: inline-flex;
+            width: 17px; height: 17px;
+            border-radius: 50%;
+            background: #000066;
+            color: white;
+            font-size: 13px;
+            line-height: 1;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .act-row.expanded .expand-icon { transform: rotate(45deg); background: #D22630; }
+
+        /* ============================================================
+           BLOQUE SEMANAL
+        ============================================================ */
+        .weekly-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
+            overflow: hidden;
+            margin-bottom: 32px;
+        }
+
+        .weekly-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+        .weekly-table thead th {
+            background: #000066;
+            color: white;
+            padding: 11px 15px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .weekly-table tbody tr { border-bottom: 1px solid #eef0f5; transition: background 0.15s; }
+        .weekly-table tbody tr:hover { background: #f8f9fc; }
+        .weekly-table td { padding: 11px 15px; }
+
+        .weekly-row-current { background: #eef0ff !important; }
+        .weekly-row-current td:first-child { border-left: 4px solid #D22630; }
+
+        .diff-positive { color: #15803d; font-weight: 700; }
+        .diff-negative { color: #D22630; font-weight: 700; }
+
+        /* ============================================================
+           GANTT Y FASES ORIGINALES — ADAPTADOS A IDENTIDAD UNICAUCA
+        ============================================================ */
+        .gantt-section {
+            background: #f8f9fa;
+            padding: 32px;
+            border-radius: 10px;
+            margin-bottom: 40px;
+        }
+
+        .gantt-title { color: #000066; font-size: 17px; margin-bottom: 22px; font-weight: 700; }
+
+        .gantt-chart {
+            background: white;
+            border-radius: 8px;
+            padding: 22px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
+            overflow-x: auto;
+        }
+
+        .gantt-header {
+            display: grid;
+            grid-template-columns: 200px repeat(16, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            min-width: 660px;
+        }
+
+        .gantt-header-phase { padding: 6px; text-align: center; }
+
+        .gantt-header-week {
+            padding: 5px 2px;
+            text-align: center;
+            background: #eef0f5;
+            border-radius: 3px;
+        }
+
+        .gantt-row {
+            display: grid;
+            grid-template-columns: 200px repeat(16, 1fr);
+            gap: 2px;
+            margin-bottom: 7px;
+            align-items: center;
+            min-width: 660px;
+        }
+
+        .gantt-phase-name { padding: 11px 8px; font-weight: 600; color: #000066; font-size: 13px; }
+
+        .gantt-cell { height: 34px; border-radius: 4px; background: #f1f3f7; }
+        .gantt-cell.active { position: relative; overflow: hidden; }
+        .gantt-cell.active::after {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        .gantt-cell.phase1 { background: #000066; }
+        .gantt-cell.phase2 { background: #1a3399; }
+        .gantt-cell.phase3 { background: #3355cc; }
+        .gantt-cell.phase4 { background: #D22630; }
+
+        .gantt-legend {
+            margin-top: 18px;
+            display: flex; justify-content: center; gap: 22px; flex-wrap: wrap;
+        }
+
+        .gantt-legend-item { display: flex; align-items: center; gap: 8px; }
+        .gantt-legend-color { width: 24px; height: 12px; border-radius: 3px; }
+        .gantt-legend-text { font-size: 12px; color: #444; font-weight: 500; }
+
+        /* Fases detalle */
+        .phase { margin-bottom: 40px; position: relative; }
+
+        .phase-header { display: flex; align-items: flex-start; margin-bottom: 18px; }
+
+        .phase-number {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: #000066;
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700;
+            margin-right: 18px; flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,102,0.28);
+        }
+
+        .phase-info { flex: 1; }
+
+        .phase-title { font-size: 18px; color: #000066; margin-bottom: 6px; font-weight: 700; }
+
+        .phase-meta { color: #666; font-size: 13px; display: flex; gap: 16px; flex-wrap: wrap; }
+
+        .meta-item { display: flex; align-items: center; gap: 5px; }
+
+        .phase-body {
+            background: #f8f9fa;
+            border-left: 4px solid #000066;
+            padding: 22px;
+            border-radius: 8px;
+            margin-left: 74px;
+        }
+
+        .description { color: #333; line-height: 1.75; margin-bottom: 18px; font-size: 13px; }
+
+        .deliverables-section { margin-top: 18px; }
+
+        .section-title {
+            font-weight: 700; color: #000066;
+            margin-bottom: 11px;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px;
+        }
+
+        .deliverable {
+            background: white;
+            padding: 11px 15px;
+            margin-bottom: 7px;
+            border-radius: 7px;
+            border-left: 3px solid #000066;
+            display: flex; align-items: center; gap: 9px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            font-size: 12px;
+        }
+
+        .deliverable:hover { transform: translateX(4px); box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+
+        .deliverable::before {
+            content: "✓";
+            width: 18px; height: 18px;
+            background: #000066;
+            color: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; flex-shrink: 0; font-size: 10px;
+        }
+
+        .warning-box {
+            background: #fff8e1;
+            border-left: 4px solid #f59e0b;
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-top: 14px;
+            display: flex; gap: 10px; align-items: flex-start;
+        }
+
+        .warning-icon { font-size: 18px; flex-shrink: 0; }
+
+        .warning-text { color: #78350f; line-height: 1.6; font-size: 12px; }
+
+        /* Resumen ejecutivo */
+        .summary-section {
+            background: #f0f2fa;
+            border: 1px solid #dde2f0;
+            padding: 28px;
+            border-radius: 10px;
+            margin-top: 36px;
+        }
+
+        .summary-title { color: #000066; font-size: 18px; margin-bottom: 20px; font-weight: 700; text-align: center; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+
+        .summary-card {
+            background: white; padding: 18px;
+            border-radius: 8px; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+            border-top: 3px solid #000066;
+        }
+
+        .summary-card-title {
+            color: #888; font-size: 10px;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 9px; font-weight: 700;
+        }
+
+        .summary-card-value { font-size: 28px; font-weight: 700; color: #000066; }
+
+        /* Leyenda */
+        .timeline-legend { margin-top: 28px; padding: 22px; background: #f8f9fa; border-radius: 8px; }
+
+        .legend-title { color: #000066; font-size: 14px; margin-bottom: 14px; font-weight: 700; }
+
+        .legend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 11px; }
+
+        .legend-item { display: flex; align-items: center; gap: 9px; }
+
+        .legend-color { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+
+        .legend-text { font-size: 12px; color: #444; }
+
+        /* ---- FOOTER ---- */
+        .footer { background: #000066; color: white; padding: 22px; text-align: center; }
+        .footer-main { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+        .footer-sub  { font-size: 11px; opacity: 0.7; }
+
+        /* ---- LOADER ---- */
+        .csv-loader { text-align: center; padding: 40px; color: #aaa; }
+
+        .csv-loader .spinner {
+            display: inline-block;
+            width: 28px; height: 28px;
+            border: 3px solid #dde2f0;
+            border-top-color: #000066;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .csv-error {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin: 14px 0;
+        }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 768px) {
+            .content { padding: 24px 16px; }
+            .header { flex-direction: column; text-align: center; padding: 22px 20px; }
+            .stats-grid { justify-content: center; flex-wrap: wrap; }
+            .nav-tabs { padding: 0 16px; }
+            .phase-body { margin-left: 0; margin-top: 14px; }
+            .phase-header { flex-direction: column; }
+            .phase-number { margin-bottom: 10px; }
+            .kpi-panel { grid-template-columns: 1fr 1fr; }
+            .activities-table-wrap, .weekly-section { overflow-x: auto; }
+            .activities-table, .weekly-table { min-width: 600px; }
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; }
+            .nav-tabs { display: none; }
+            .tab-section { display: block !important; }
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ============================================================
+         HEADER INSTITUCIONAL
+    ============================================================ -->
+    <div class="header">
+        <div class="header-logo">
+            <img src="logo_u.png" alt="Logo Universidad del Cauca">
+        </div>
+        <div class="header-text">
+            <h1>Cronograma de Práctica Académica</h1>
+            <p class="subtitle">Apoyo a Investigación Doctoral — Inteligencia Artificial para Proyectos Públicos</p>
+            <p class="university">Universidad del Cauca &nbsp;·&nbsp; Programa de Administración de Empresas &nbsp;·&nbsp; Popayán, Colombia</p>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Duración</div>
+                <div class="stat-value">16 Sem</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Hrs/Sem</div>
+                <div class="stat-value">12h</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Total</div>
+                <div class="stat-value">192h</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Modalidad</div>
+                <div class="stat-value" style="font-size:13px;padding-top:4px;">Flexible</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         NAVEGACIÓN INTERNA
+    ============================================================ -->
+    <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="tab-seguimiento">📊 Seguimiento en Tiempo Real</button>
+        <button class="nav-tab" data-tab="tab-cronograma">📅 Cronograma Pre-Aprobado</button>
+    </div>
+
+    <!-- ============================================================
+         TAB 1 — SEGUIMIENTO DINÁMICO (CSV)
+    ============================================================ -->
+    <div id="tab-seguimiento" class="tab-section active">
+        <div class="content">
+
+            <!-- Panel KPI -->
+            <div class="section-block-title">📌 Indicadores de Progreso</div>
+            <div class="kpi-panel" id="kpi-panel">
+                <div class="csv-loader" style="grid-column:1/-1;">
+                    <div class="spinner"></div>
+                    <div>Conectando con Google Sheets…</div>
+                </div>
+            </div>
+
+            <!-- Análisis por Fase -->
+            <div class="section-block-title" style="margin-top:4px;">🗂️ Avance por Fase</div>
+            <div class="fase-analysis" id="fase-analysis">
+                <div class="csv-loader"><div class="spinner"></div><div>Cargando fases…</div></div>
+            </div>
+
+            <!-- Tabla de Actividades -->
+            <div class="section-block-title">📋 Tabla de Actividades</div>
+            <div class="activities-table-wrap" id="activities-wrap">
+                <div class="csv-loader"><div class="spinner"></div><div>Cargando actividades…</div></div>
+            </div>
+
+            <!-- Bloque Semanal -->
+            <div class="section-block-title">📆 Resumen Ejecutivo Semanal</div>
+            <div class="weekly-section" id="weekly-section">
+                <div class="csv-loader"><div class="spinner"></div><div>Procesando semanas…</div></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+         TAB 2 — CRONOGRAMA ORIGINAL (PRESERVADO ÍNTEGRAMENTE)
+    ============================================================ -->
+    <div id="tab-cronograma" class="tab-section">
+        <div class="content">
+
+            <!-- GANTT — ORIGINAL -->
+            <div class="gantt-section">
+                <div class="gantt-title">📊 Diagrama de Gantt — Cronograma General</div>
+                <div class="gantt-chart">
+                    <div class="gantt-header">
+                        <div class="gantt-header-phase">Fase</div>
+                        <div class="gantt-header-week">S1</div>
+                        <div class="gantt-header-week">S2</div>
+                        <div class="gantt-header-week">S3</div>
+                        <div class="gantt-header-week">S4</div>
+                        <div class="gantt-header-week">S5</div>
+                        <div class="gantt-header-week">S6</div>
+                        <div class="gantt-header-week">S7</div>
+                        <div class="gantt-header-week">S8</div>
+                        <div class="gantt-header-week">S9</div>
+                        <div class="gantt-header-week">S10</div>
+                        <div class="gantt-header-week">S11</div>
+                        <div class="gantt-header-week">S12</div>
+                        <div class="gantt-header-week">S13</div>
+                        <div class="gantt-header-week">S14</div>
+                        <div class="gantt-header-week">S15</div>
+                        <div class="gantt-header-week">S16</div>
+                    </div>
+                    <div class="gantt-row">
+                        <div class="gantt-phase-name">Fase 1: Documentación IA</div>
+                        <div class="gantt-cell active phase1"></div>
+                        <div class="gantt-cell active phase1"></div>
+                        <div class="gantt-cell active phase1"></div>
+                        <div class="gantt-cell active phase1"></div>
+                        <div class="gantt-cell active phase1"></div>
+                        <div class="gantt-cell active phase1"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                    </div>
+                    <div class="gantt-row">
+                        <div class="gantt-phase-name">Fase 2: Diseño de Flujos</div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell active phase2"></div>
+                        <div class="gantt-cell active phase2"></div>
+                        <div class="gantt-cell active phase2"></div>
+                        <div class="gantt-cell active phase2"></div>
+                        <div class="gantt-cell active phase2"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div>
+                    </div>
+                    <div class="gantt-row">
+                        <div class="gantt-phase-name">Fase 3: Diseño de Pilotos</div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div>
+                        <div class="gantt-cell active phase3"></div>
+                        <div class="gantt-cell active phase3"></div>
+                        <div class="gantt-cell active phase3"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                    </div>
+                    <div class="gantt-row">
+                        <div class="gantt-phase-name">Fase 4: Cierre y Entrega</div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell"></div><div class="gantt-cell"></div>
+                        <div class="gantt-cell active phase4"></div>
+                        <div class="gantt-cell active phase4"></div>
+                    </div>
+                </div>
+                <div class="gantt-legend">
+                    <div class="gantt-legend-item">
+                        <div class="gantt-legend-color" style="background:#000066;"></div>
+                        <span class="gantt-legend-text">Fase 1 (72h)</span>
+                    </div>
+                    <div class="gantt-legend-item">
+                        <div class="gantt-legend-color" style="background:#1a3399;"></div>
+                        <span class="gantt-legend-text">Fase 2 (60h)</span>
+                    </div>
+                    <div class="gantt-legend-item">
+                        <div class="gantt-legend-color" style="background:#3355cc;"></div>
+                        <span class="gantt-legend-text">Fase 3 (36h)</span>
+                    </div>
+                    <div class="gantt-legend-item">
+                        <div class="gantt-legend-color" style="background:#D22630;"></div>
+                        <span class="gantt-legend-text">Fase 4 (24h)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FASE 1 — ORIGINAL -->
+            <div class="phase">
+                <div class="phase-header">
+                    <div class="phase-number">1</div>
+                    <div class="phase-info">
+                        <div class="phase-title">Documentación de Herramientas de IA</div>
+                        <div class="phase-meta">
+                            <span class="meta-item">📅 Semanas 1-6</span>
+                            <span class="meta-item">⏱️ 72 horas</span>
+                            <span class="meta-item">📊 37.5% del tiempo</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="description">
+                        Sistematizar el conocimiento existente sobre plataformas, asistentes de IA y herramientas de automatización aplicables a procesos de formulación y evaluación de proyectos de inversión pública. Documentar funcionalidades, casos de uso, ventajas y limitaciones técnicas de cada herramienta identificada.
+                    </div>
+                    <div class="deliverables-section">
+                        <div class="section-title">📦 Entregables Parciales</div>
+                        <div class="deliverable">Fichas técnicas de 6-8 herramientas conocidas por el practicante</div>
+                        <div class="deliverable">Investigación complementaria de 4-5 herramientas adicionales relevantes</div>
+                        <div class="deliverable"><strong>Total: 10-12 herramientas de IA documentadas</strong></div>
+                        <div class="deliverable">Clasificación por tipo tecnológico (ML, PLN, Sistemas Expertos, Deep Learning)</div>
+                        <div class="deliverable">Evaluación de aplicabilidad específica a proyectos de inversión pública</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FASE 2 — ORIGINAL -->
+            <div class="phase">
+                <div class="phase-header">
+                    <div class="phase-number">2</div>
+                    <div class="phase-info">
+                        <div class="phase-title">Diseño de Flujos de Trabajo con IA</div>
+                        <div class="phase-meta">
+                            <span class="meta-item">📅 Semanas 7-11</span>
+                            <span class="meta-item">⏱️ 60 horas</span>
+                            <span class="meta-item">📊 31% del tiempo</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="description">
+                        Proponer esquemas de flujos de trabajo que ilustren cómo la inteligencia artificial podría integrarse en procesos clave de gestión de proyectos públicos. Diseñar diagramas comparativos mostrando el proceso actual versus el proceso propuesto con IA, identificando puntos específicos de automatización.
+                    </div>
+                    <div class="deliverables-section">
+                        <div class="section-title">📦 Entregables Parciales</div>
+                        <div class="deliverable">Diagrama de flujo: Análisis automático de coherencia en matrices de marco lógico</div>
+                        <div class="deliverable">Diagrama de flujo: Extracción automática de indicadores desde documentos técnicos</div>
+                        <div class="deliverable">Diagrama de flujo: Verificación de cumplimiento normativo (MGA/DNP)</div>
+                        <div class="deliverable">Documentación de herramientas aplicables en cada punto del flujo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FASE 3 — ORIGINAL -->
+            <div class="phase">
+                <div class="phase-header">
+                    <div class="phase-number">3</div>
+                    <div class="phase-info">
+                        <div class="phase-title">Diseño Conceptual de Pruebas Piloto</div>
+                        <div class="phase-meta">
+                            <span class="meta-item">📅 Semanas 12-14</span>
+                            <span class="meta-item">⏱️ 36 horas</span>
+                            <span class="meta-item">📊 18.75% del tiempo</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="description">
+                        Asesorar técnicamente en el diseño conceptual de 1-2 pruebas piloto de implementación de IA en procesos de formulación/evaluación de proyectos. Definir alcance, objetivos específicos, flujo funcional detallado, requisitos técnicos básicos y criterios de evaluación de resultados.
+                    </div>
+                    <div class="deliverables-section">
+                        <div class="section-title">📦 Entregables Parciales</div>
+                        <div class="deliverable">Propuesta de Piloto #1: Alcance, objetivos y flujo funcional detallado</div>
+                        <div class="deliverable">Propuesta de Piloto #2 (opcional): Caso de uso alternativo</div>
+                        <div class="deliverable">Especificación de requisitos técnicos mínimos para implementación</div>
+                        <div class="deliverable">Criterios de evaluación y métricas de éxito del piloto</div>
+                    </div>
+                    <div class="warning-box">
+                        <span class="warning-icon">⚠️</span>
+                        <div class="warning-text">
+                            <strong>Nota aclaratoria importante:</strong> El desarrollo técnico (programación, adquisición de infraestructura, implementación efectiva) queda expresamente fuera del alcance de esta práctica académica y será responsabilidad del investigador principal.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FASE 4 — ORIGINAL -->
+            <div class="phase">
+                <div class="phase-header">
+                    <div class="phase-number">4</div>
+                    <div class="phase-info">
+                        <div class="phase-title">Transferencia de Conocimiento y Cierre</div>
+                        <div class="phase-meta">
+                            <span class="meta-item">📅 Semanas 15-16</span>
+                            <span class="meta-item">⏱️ 24 horas</span>
+                            <span class="meta-item">📊 12.5% del tiempo</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="description">
+                        Realizar sesiones de trabajo colaborativo con el asesor académico para transferir conocimiento práctico sobre funcionamiento real de asistentes de IA, arquitectura de flujos de automatización, viabilidad técnica de implementaciones y consideraciones críticas para implementación en contextos de sector público. Consolidar todos los hallazgos en el informe final ejecutivo.
+                    </div>
+                    <div class="deliverables-section">
+                        <div class="section-title">📦 Entregables Finales</div>
+                        <div class="deliverable">3-4 sesiones de consultoría técnica (memoria de cada sesión)</div>
+                        <div class="deliverable">Catálogo Técnico de Herramientas de IA (12-15 páginas) — <strong>10-12 herramientas documentadas</strong></div>
+                        <div class="deliverable">Propuesta de Flujos de Trabajo con IA (conjunto de diagramas)</div>
+                        <div class="deliverable">Diseño Conceptual de Piloto(s) (documento técnico 8-10 páginas)</div>
+                        <div class="deliverable"><strong>Informe Final de Consultoría Técnica (síntesis ejecutiva 10-12 páginas)</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESUMEN EJECUTIVO — ORIGINAL -->
+            <div class="summary-section">
+                <div class="summary-title">📊 Resumen Ejecutivo de la Práctica</div>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-card-title">Fases de Trabajo</div>
+                        <div class="summary-card-value">4</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-title">Documentos Principales</div>
+                        <div class="summary-card-value">4</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-title">Sesiones Consultoría</div>
+                        <div class="summary-card-value">3-4</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-title">Herramientas IA</div>
+                        <div class="summary-card-value">10-12</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-title">Diagramas de Flujo</div>
+                        <div class="summary-card-value">2-3</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEYENDA TIEMPO — ORIGINAL -->
+            <div class="timeline-legend">
+                <div class="legend-title">📌 Distribución de Tiempo Estimada</div>
+                <div class="legend-grid">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#000066;"></div>
+                        <span class="legend-text"><strong>Investigación y documentación:</strong> ~60h</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#1a3399;"></div>
+                        <span class="legend-text"><strong>Diseño de flujos y diagramas:</strong> ~50h</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#3355cc;"></div>
+                        <span class="legend-text"><strong>Sesiones con asesor:</strong> ~20h</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#D22630;"></div>
+                        <span class="legend-text"><strong>Redacción de informes:</strong> ~30h</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#888;"></div>
+                        <span class="legend-text"><strong>Buffer y ajustes:</strong> ~32h</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div><!-- /tab-cronograma -->
+
+    <!-- ============================================================
+         FOOTER
+    ============================================================ -->
+    <div class="footer">
+        <div class="footer-main">Práctica Académica &nbsp;·&nbsp; Primer Semestre 2026</div>
+        <div class="footer-sub">Programa de Administración de Empresas &nbsp;·&nbsp; Universidad del Cauca</div>
+    </div>
+
+</div><!-- /.container -->
+
+<!-- ============================================================
+     JAVASCRIPT
+     Secciones:
+       1. Navegación pestañas
+       2. Utilidades CSV / número
+       3. Colores dinámicos por diferencia
+       4. Render KPI Cards
+       5. Render Análisis por Fase
+       6. Render Tabla de Actividades
+       7. Render Bloque Semanal
+       8. Fetch CSV principal
+       9. Construcción semanal desde actividades (fallback)
+      10. Inicialización
+============================================================ -->
+<script>
+
+/* ---------------------------------------------------------------
+   1. NAVEGACIÓN POR PESTAÑAS
+--------------------------------------------------------------- */
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+});
+
+/* ---------------------------------------------------------------
+   2. UTILIDADES CSV
+--------------------------------------------------------------- */
+
+/** Convierte un string a número, soporta coma decimal */
+function toNum(v) {
+    const n = parseFloat(String(v || '0').replace(',', '.'));
+    return isNaN(n) ? 0 : n;
+}
+
+/** Parsea CSV completo con soporte de campos entre comillas */
+function parseCSV(text) {
+    const lines = text
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .split('\n')
+        .filter(l => l.trim());
+
+    if (lines.length < 2) return [];
+
+    const headers = csvSplitLine(lines[0]);
+
+    return lines.slice(1).map(line => {
+        const vals = csvSplitLine(line);
+        const obj  = {};
+        headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || '').trim(); });
+        return obj;
+    }).filter(row => Object.values(row).some(v => v !== ''));
+}
+
+/** Divide una línea CSV respetando comillas dobles */
+function csvSplitLine(line) {
+    const out = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"')       { inQ = !inQ; }
+        else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
+        else                 { cur += c; }
+    }
+    out.push(cur);
+    return out;
+}
+
+/* ---------------------------------------------------------------
+   3. COLORES Y CLASES DINÁMICAS
+--------------------------------------------------------------- */
+
+/** Clase CSS de la barra de progreso real según diferencia */
+function barClass(diff) {
+    if (diff >= 0)   return 'real';
+    if (diff >= -10) return 'real warn';
+    return 'real crit';
+}
+
+/** Clase del badge según texto de estado */
+function badgeEstado(estado) {
+    const s = (estado || '').toLowerCase();
+    if (s.includes('adelant') || s.includes('complet')) return 'badge-ok';
+    if (s.includes('tiempo')  || s.includes('normal'))  return 'badge-info';
+    if (s.includes('leve'))                              return 'badge-warn';
+    if (s.includes('crít')    || s.includes('crit') || s.includes('retraso')) return 'badge-crit';
+    return 'badge-neutral';
+}
+
+/** Clase del badge según texto de alerta */
+function badgeAlerta(alerta) {
+    const a = (alerta || '').toLowerCase();
+    if (a.includes('crít') || a.includes('crit'))        return 'badge-crit';
+    if (a.includes('leve') || a.includes('warn'))        return 'badge-warn';
+    if (a === '' || a === 'ok' || a.includes('tiempo'))  return 'badge-ok';
+    return 'badge-neutral';
+}
+
+/** Color del texto de diferencia */
+function diffColor(diff) {
+    if (diff >= 0)   return '#15803d';
+    if (diff >= -10) return '#d97706';
+    return '#D22630';
+}
+
+/* ---------------------------------------------------------------
+   4. RENDER KPI CARDS
+--------------------------------------------------------------- */
+function renderKPI(acts, currentWeek) {
+    let sumPeso = 0, sumReal = 0, sumEsp = 0;
+
+    acts.forEach(r => {
+        const p  = toNum(r['Peso pct']);
+        sumPeso += p;
+        sumReal += p * toNum(r['Progreso_manual_(0–100)']) / 100;
+        sumEsp  += p * toNum(r['Avance esperado'])          / 100;
+    });
+
+    const progTotal = sumPeso > 0 ? (sumReal / sumPeso * 100) : 0;
+    const espTotal  = sumPeso > 0 ? (sumEsp  / sumPeso * 100) : 0;
+    const diff      = progTotal - espTotal;
+
+    const cardCls  = diff >= 0 ? 'success' : diff >= -10 ? 'warning' : 'alert';
+    const color    = diffColor(diff);
+    const semTxt   = currentWeek ? `Semana ${currentWeek}` : '—';
+    const estadoTxt = diff >= 5  ? 'ADELANTADO'
+                    : diff >= -5 ? 'EN TIEMPO'
+                    : diff >= -15 ? 'RETRASO LEVE'
+                    : 'RETRASO CRÍTICO';
+    const icon      = diff >= 5 ? '🚀' : diff >= -5 ? '👍' : diff >= -15 ? '🔶' : '🚨';
+
+    document.getElementById('kpi-panel').innerHTML = `
+        <div class="kpi-card info">
+            <div class="kpi-label">Progreso Total Ponderado</div>
+            <div class="kpi-value">${progTotal.toFixed(1)}<span style="font-size:17px;">%</span></div>
+            <div class="kpi-sub">Avance real acumulado</div>
+            <div class="kpi-trend">📈</div>
+        </div>
+        <div class="kpi-card info">
+            <div class="kpi-label">Avance Esperado Total</div>
+            <div class="kpi-value">${espTotal.toFixed(1)}<span style="font-size:17px;">%</span></div>
+            <div class="kpi-sub">Según cronograma base</div>
+            <div class="kpi-trend">🎯</div>
+        </div>
+        <div class="kpi-card ${cardCls}">
+            <div class="kpi-label">Diferencia Global</div>
+            <div class="kpi-value" style="color:${color};">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}<span style="font-size:17px;">%</span></div>
+            <div class="kpi-sub">${diff >= 0 ? '▲ Por encima del plan' : '▼ Por debajo del plan'}</div>
+            <div class="kpi-trend">${diff >= 0 ? '✅' : '⚠️'}</div>
+        </div>
+        <div class="kpi-card info">
+            <div class="kpi-label">Semana Actual</div>
+            <div class="kpi-value" style="font-size:24px;">${semTxt}</div>
+            <div class="kpi-sub">Primer Semestre 2026</div>
+            <div class="kpi-trend">📅</div>
+        </div>
+        <div class="kpi-card ${cardCls}">
+            <div class="kpi-label">Estado General</div>
+            <div class="kpi-value" style="font-size:19px;color:${color};">${estadoTxt}</div>
+            <div class="kpi-sub">${acts.length} actividades · ${icon}</div>
+        </div>
+    `;
+}
+
+/* ---------------------------------------------------------------
+   5. RENDER ANÁLISIS POR FASE
+--------------------------------------------------------------- */
+function renderFases(acts) {
+    // Agrupar por Fase
+    const map = {};
+    acts.forEach(r => {
+        const f = r['Fase'] || 'Sin fase';
+        if (!map[f]) map[f] = { rows: [], sp: 0, sr: 0, se: 0, fechaI: r['Fecha Inicio'] || '' };
+        const p = toNum(r['Peso pct']);
+        map[f].sp += p;
+        map[f].sr += p * toNum(r['Progreso_manual_(0–100)']) / 100;
+        map[f].se += p * toNum(r['Avance esperado']) / 100;
+        map[f].rows.push(r);
+    });
+
+    const keys = Object.keys(map).sort();
+    let html = '';
+
+    keys.forEach(key => {
+        const d    = map[key];
+        const real = d.sp > 0 ? (d.sr / d.sp * 100) : 0;
+        const esp  = d.sp > 0 ? (d.se / d.sp * 100) : 0;
+        const diff = real - esp;
+        const clr  = diffColor(diff);
+        const fNum = key.match(/\d+/)?.[0] || '?';
+        const espW = Math.min(100, Math.max(0, esp));
+
+        html += `
+        <div class="fase-item">
+            <div class="fase-row-top">
+                <div class="fase-num">${fNum}</div>
+                <div class="fase-name">${key}</div>
+                <div class="fase-pct" style="color:${clr};">${real.toFixed(1)}%</div>
+                <span class="badge ${diff >= 0 ? 'badge-ok' : diff >= -10 ? 'badge-warn' : 'badge-crit'}">
+                    ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%
+                </span>
+            </div>
+            <div class="fase-progress-track">
+                <div class="fase-progress-real" style="width:${Math.min(100, real)}%; background:${clr};"></div>
+                <div class="fase-progress-expected" style="left:${espW}%;"></div>
+            </div>
+            <div class="fase-meta-row">
+                <span>Real: <strong>${real.toFixed(1)}%</strong></span>
+                <span>Esperado: <strong>${esp.toFixed(1)}%</strong></span>
+                <span>${d.rows.length} actividades</span>
+                <span>Peso total: ${d.sp.toFixed(1)}%</span>
+            </div>
+        </div>`;
+    });
+
+    document.getElementById('fase-analysis').innerHTML = html
+        || '<div class="csv-loader" style="color:#aaa;">Sin datos de fases disponibles.</div>';
+}
+
+/* ---------------------------------------------------------------
+   6. RENDER TABLA DE ACTIVIDADES (EXPANDIBLE)
+--------------------------------------------------------------- */
+function renderActivities(acts) {
+    const wrap = document.getElementById('activities-wrap');
+    let rows = '';
+
+    acts.forEach((row, idx) => {
+        const progReal = toNum(row['Progreso_manual_(0–100)']);
+        const espAct   = toNum(row['Avance esperado']);
+        const diff     = toNum(row['Diferencia']);
+        const bCls     = barClass(diff);
+        const espPct   = Math.min(100, Math.max(0, espAct));
+        const estado   = row['Estado'] || '—';
+        const alerta   = row['Alerta retraso'] || '';
+        const semana   = row['Semana proyecto'] || '—';
+        const color    = diffColor(diff);
+
+        rows += `
+        <tr class="act-row" data-idx="${idx}">
+            <td><span class="expand-icon">+</span></td>
+            <td style="color:#000066;font-weight:700;white-space:nowrap;">${row['ID_actividad'] || '—'}</td>
+            <td style="max-width:220px;font-size:12px;">${row['Nombre Actividad'] || '—'}</td>
+            <td style="white-space:nowrap;">${row['Fase'] || '—'}</td>
+            <td style="text-align:center;">S${semana}</td>
+            <td>
+                <div class="progress-wrap">
+                    <div class="progress-label">
+                        <span>Real: ${progReal}%</span>
+                        <span>Esp: ${espAct}%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar ${bCls}" style="width:${Math.min(100, progReal)}%;"></div>
+                        <div class="progress-expected-line" style="left:${espPct}%;"></div>
+                    </div>
+                </div>
+            </td>
+            <td><span class="badge ${badgeEstado(estado)}">${estado}</span></td>
+            <td style="color:${color};font-weight:700;text-align:right;white-space:nowrap;">${diff >= 0 ? '+' : ''}${diff.toFixed ? diff.toFixed(1) : diff}%</td>
+            <td>${alerta
+                ? `<span class="badge ${badgeAlerta(alerta)}">${alerta}</span>`
+                : '<span class="badge badge-ok">OK</span>'}</td>
+        </tr>
+        <tr class="act-desc-row" id="desc-${idx}">
+            <td class="act-desc-cell" colspan="9">
+                <strong>Descripción:</strong> ${row['Descripcion'] || 'Sin descripción registrada.'}
+                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Inicio:</strong> ${row['Fecha Inicio'] || '—'}
+                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Fin:</strong> ${row['Fecha Fin'] || '—'}
+                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Horas:</strong> ${row['Horas Asignadas'] || '—'}h
+                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Peso:</strong> ${row['Peso pct'] || '—'}%
+                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Aporte ponderado:</strong> ${row['Aporte ponderado'] || '—'}
+            </td>
+        </tr>`;
+    });
+
+    wrap.innerHTML = `
+        <div class="table-header-bar">
+            <span>Actividades del Proyecto — ${acts.length} registros</span>
+            <span style="font-size:11px;opacity:0.75;font-weight:400;">▸ Clic en fila para expandir descripción</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="activities-table">
+                <thead>
+                    <tr>
+                        <th style="width:32px;"></th>
+                        <th>ID</th>
+                        <th>Actividad</th>
+                        <th>Fase</th>
+                        <th>Sem.</th>
+                        <th>Progreso</th>
+                        <th>Estado</th>
+                        <th>Diferencia</th>
+                        <th>Alerta</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+
+    // Eventos de expansión de filas
+    wrap.querySelectorAll('.act-row').forEach(tr => {
+        tr.addEventListener('click', () => {
+            const idx  = tr.dataset.idx;
+            const desc = document.getElementById('desc-' + idx);
+            const open = desc.classList.contains('open');
+
+            // Cerrar todos primero
+            wrap.querySelectorAll('.act-desc-row').forEach(d => d.classList.remove('open'));
+            wrap.querySelectorAll('.act-row').forEach(r => r.classList.remove('expanded'));
+
+            // Abrir si estaba cerrado
+            if (!open) {
+                desc.classList.add('open');
+                tr.classList.add('expanded');
+            }
+        });
+    });
+}
+
+/* ---------------------------------------------------------------
+   7. RENDER BLOQUE SEMANAL
+--------------------------------------------------------------- */
+function renderWeekly(weekData, currentWeek) {
+    const sec = document.getElementById('weekly-section');
+
+    if (!weekData || weekData.length === 0) {
+        sec.innerHTML = '<div class="csv-loader" style="color:#aaa;">Sin datos semanales disponibles en el CSV.</div>';
+        return;
+    }
+
+    let rows = '';
+    weekData.forEach(r => {
+        const semana = r['Semana'] || r['Semana proyecto'] || '—';
+        const fechaI = r['Fecha inicio semana'] || r['Fecha Inicio'] || '—';
+        const pReal  = toNum(r['Progreso real ponderado'] || r['Aporte ponderado'] || 0);
+        const pEsp   = toNum(r['Avance esperado semana']  || r['Avance esperado']   || 0);
+        const diff   = toNum(r['Diferencia semanal']      || r['Diferencia']        || 0);
+        const alerta = r['Alerta semanal'] || r['Alerta retraso'] || '';
+        const isCurr = String(semana) === String(currentWeek);
+
+        const diffHtml = diff >= 0
+            ? `<span class="diff-positive">+${diff.toFixed(1)}%</span>`
+            : `<span class="diff-negative">${diff.toFixed(1)}%</span>`;
+
+        rows += `
+        <tr class="${isCurr ? 'weekly-row-current' : ''}">
+            <td>
+                ${isCurr ? '<strong>' : ''}Semana ${semana}${isCurr ? '</strong>' : ''}
+                ${isCurr ? '<span style="color:#D22630;font-size:10px;margin-left:6px;font-weight:700;">EN CURSO</span>' : ''}
+            </td>
+            <td>${fechaI}</td>
+            <td>${pReal.toFixed(1)}%</td>
+            <td>${pEsp.toFixed(1)}%</td>
+            <td>${diffHtml}</td>
+            <td>${alerta
+                ? `<span class="badge ${badgeAlerta(alerta)}">${alerta}</span>`
+                : '<span class="badge badge-ok">OK</span>'}</td>
+        </tr>`;
+    });
+
+    sec.innerHTML = `
+        <div class="table-header-bar">
+            <span>Resumen Ejecutivo Semanal</span>
+            <span style="font-size:11px;opacity:0.75;font-weight:400;">Semana en curso resaltada</span>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="weekly-table">
+                <thead>
+                    <tr>
+                        <th>Semana</th>
+                        <th>Fecha Inicio</th>
+                        <th>Progreso Real</th>
+                        <th>Avance Esperado</th>
+                        <th>Diferencia</th>
+                        <th>Alerta</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+}
+
+/* ---------------------------------------------------------------
+   8. FETCH CSV
+--------------------------------------------------------------- */
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTz_JPN19_XgTk2ax8Xndu3M3NpILEW96KWDYxq_S_EOf3OPBiHKYNnASOfQhY7hg/pub?gid=1087789345&single=true&output=csv';
+
+// Encabezados clave para identificar cada bloque
+const ACT_KEYS     = ['ID_actividad', 'Nombre Actividad', 'Progreso_manual_(0–100)'];
+const WEEKLY_KEYS  = ['Semana', 'Fecha inicio semana', 'Progreso real ponderado'];
+
+/** Verifica si un objeto tiene al menos uno de los encabezados buscados */
+function hasKeys(obj, keys) {
+    return keys.some(k => k in obj);
+}
+
+function mostrarError(msg) {
+    const html = `<div class="csv-error">⚠️ ${msg}</div>`;
+    ['kpi-panel','fase-analysis','activities-wrap','weekly-section'].forEach(id => {
+        document.getElementById(id).innerHTML = html;
+    });
+}
+
+async function loadCSV() {
+    try {
+        const res = await fetch(CSV_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status} al acceder al CSV`);
+
+        const text = await res.text();
+
+        // Intentar separar dos bloques (actividades y semanal) por líneas en blanco
+        const segments = text.split(/\n\s*\n/).filter(b => b.trim());
+
+        let actRows    = [];
+        let weeklyRows = [];
+
+        segments.forEach(seg => {
+            const parsed = parseCSV(seg);
+            if (!parsed.length) return;
+            if (hasKeys(parsed[0], WEEKLY_KEYS)) {
+                weeklyRows = parsed;
+            } else if (hasKeys(parsed[0], ACT_KEYS)) {
+                actRows = parsed;
+            }
+        });
+
+        // Fallback: todo en un solo bloque, separar por presencia de claves
+        if (actRows.length === 0) {
+            const all = parseCSV(text);
+            all.forEach(r => {
+                if (hasKeys(r, WEEKLY_KEYS)) weeklyRows.push(r);
+                else if (hasKeys(r, ACT_KEYS)) actRows.push(r);
+            });
+        }
+
+        if (actRows.length === 0) {
+            mostrarError('No se encontraron filas de actividades. Verifica que la hoja esté publicada como CSV y que los encabezados coincidan exactamente.');
+            return;
+        }
+
+        // Detectar semana actual: última semana con progreso > 0
+        const conProgreso = actRows.filter(r => toNum(r['Progreso_manual_(0–100)']) > 0);
+        const currentWeek = conProgreso.length
+            ? Math.max(...conProgreso.map(r => toNum(r['Semana proyecto'])))
+            : 1;
+
+        // Renderizar secciones
+        renderKPI(actRows, currentWeek);
+        renderFases(actRows);
+        renderActivities(actRows);
+
+        if (weeklyRows.length > 0) {
+            renderWeekly(weeklyRows, currentWeek);
+        } else {
+            buildWeeklyFromActivities(actRows, currentWeek);
+        }
+
+    } catch (err) {
+        console.error(err);
+        mostrarError(`No se pudo cargar el CSV: ${err.message}<br>
+            Verifica que el documento esté publicado en Google Sheets (Archivo → Publicar en la web → CSV) y que sea accesible públicamente.`);
+    }
+}
+
+/* ---------------------------------------------------------------
+   9. CONSTRUCCIÓN SEMANAL DESDE ACTIVIDADES (FALLBACK)
+   Se usa cuando no existe una hoja semanal separada en el CSV.
+--------------------------------------------------------------- */
+function buildWeeklyFromActivities(acts, currentWeek) {
+    const map = {};
+
+    acts.forEach(r => {
+        const s = r['Semana proyecto'] || '0';
+        if (!map[s]) map[s] = { sp: 0, sr: 0, se: 0, fechaI: r['Fecha Inicio'] || '—' };
+        const p = toNum(r['Peso pct']);
+        map[s].sp += p;
+        map[s].sr += p * toNum(r['Progreso_manual_(0–100)']) / 100;
+        map[s].se += p * toNum(r['Avance esperado'])          / 100;
+    });
+
+    const weeklyRows = Object.keys(map)
+        .sort((a, b) => +a - +b)
+        .map(s => {
+            const d    = map[s];
+            const real = d.sp > 0 ? (d.sr / d.sp * 100) : 0;
+            const esp  = d.sp > 0 ? (d.se / d.sp * 100) : 0;
+            const diff = real - esp;
+            return {
+                'Semana':                    s,
+                'Fecha inicio semana':       d.fechaI,
+                'Progreso real ponderado':   real,
+                'Avance esperado semana':    esp,
+                'Diferencia semanal':        diff,
+                'Alerta semanal':            diff < -15 ? 'Retraso Crítico' : diff < 0 ? 'Retraso Leve' : 'OK'
+            };
+        });
+
+    renderWeekly(weeklyRows, currentWeek);
+}
+
+/* ---------------------------------------------------------------
+   10. INICIALIZACIÓN
+--------------------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', loadCSV);
+
+</script>
+</body>
+</html>
