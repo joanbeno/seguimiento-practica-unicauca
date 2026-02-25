@@ -1133,6 +1133,10 @@
 
 /* ---------------------------------------------------------------
    1. NAVEGACIÓN POR PESTAÑAS
+   Gestiona la visibilidad de las dos pestañas principales:
+   · "Seguimiento en Tiempo Real" (tab-seguimiento) — carga CSV
+   · "Cronograma Pre-Aprobado"   (tab-cronograma)  — estático
+   Aplica clase "active" al tab y a la sección correspondiente.
 --------------------------------------------------------------- */
 document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -1144,16 +1148,30 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
 });
 
 /* ---------------------------------------------------------------
-   2. UTILIDADES CSV
+   2. UTILIDADES CSV / NÚMERO
+   Funciones de bajo nivel para convertir y parsear datos crudos.
+
+   · toNum(v)         — convierte string a número; soporta coma decimal
+                        y símbolo %; retorna 0 si no es parseable.
+   · csvSplitLine(l)  — divide una línea CSV respetando celdas
+                        entrecomilladas con comillas dobles.
+                        NO MODIFICAR: lógica probada y estable.
+   · parseCSVDual()   — parser principal del proyecto (ver JSDoc).
+   · getField()       — acceso flexible a campos por nombre de columna
+                        con búsqueda insensible a mayúsculas.
 --------------------------------------------------------------- */
 
-/** Convierte un string a número, soporta coma decimal */
+/** Convierte un string a número. Acepta coma decimal y símbolo %. */
 function toNum(v) {
-    const n = parseFloat(String(v || '0').replace(',', '.').replace('%',''));
+    const n = parseFloat(String(v || '0').replace(',', '.').replace('%', ''));
     return isNaN(n) ? 0 : n;
 }
 
-/** Divide una línea CSV respetando comillas dobles */
+/**
+ * Divide una línea CSV respetando celdas entrecomilladas.
+ * Ejemplo: 'a,"b,c",d' → ['a', 'b,c', 'd']
+ * ⚠️ NO MODIFICAR — lógica probada y estable.
+ */
 function csvSplitLine(line) {
     const out = [];
     let cur = '';
@@ -1169,62 +1187,70 @@ function csvSplitLine(line) {
 }
 
 /**
- * Parsea el CSV del proyecto.
+ * Parsea el CSV del proyecto (formato de doble bloque en una sola hoja).
  *
- * ESTRUCTURA REAL DEL CSV (verificada contra archivo v3):
- *   Cols  0-17 → datos de actividad
- *   Col   18   → separador vacío
- *   Cols 19-24 → datos de resumen semanal
+ * ── ESTRUCTURA DEL ARCHIVO datos.csv ──────────────────────────────
+ * Cada fila contiene DOS bloques de datos separados por una columna vacía:
  *
- * COLUMNAS DEL BLOQUE ACTIVIDADES (índice base 0):
- *   0  id_actividad
- *   1  fase
- *   2  nombre_actividad
- *   3  descripcion
- *   4  fecha_inicio
- *   5  fecha_fin
- *   6  horas_asignadas
- *   7  horas_reales
- *   8  desviacion_horaria      ← calculada en el CSV, no necesitamos recalcular
- *   9  peso_pct
- *   10 progreso_manual(0–100)  ← encabezado tiene salto de línea; se normaliza abajo
- *   11 estado
- *   12 avance_esperado
- *   13 diferencia
- *   14 alerta_retraso
- *   15 aporte_ponderado
- *   16 semana_proyecto
- *   17 entregables_JSON
+ *   Cols  0–17  → Bloque Actividades (18 columnas)
+ *   Col   18    → Separador vacío
+ *   Cols 19–24  → Bloque Semanal (6 columnas)
  *
- * COLUMNAS DEL BLOQUE SEMANAL (índice base 19):
- *   19 semana
- *   20 fecha_inicio_semana
- *   21 progreso_real_ponderado
- *   22 avance_esperado_semana
- *   23 diferencia_semanal
- *   24 alerta_semanal
+ * ── COLUMNAS DEL BLOQUE ACTIVIDADES ──────────────────────────────
+ *   0  ID_actividad         → Identificador único (ej: F1-01)
+ *   1  Fase                 → Nombre de la fase (ej: Fase 1)
+ *   2  Nombre actividad     → Nombre descriptivo de la actividad
+ *   3  Descripcion          → Descripción detallada
+ *   4  Fecha inicio         → Fecha de inicio planificada
+ *   5  Fecha fin            → Fecha de fin planificada
+ *   6  Horas asignadas      → Horas planificadas para la actividad
+ *   7  Horas reales         → Horas efectivamente trabajadas
+ *   8  Desviacion horaria   → Diferencia (Reales − Asignadas), pre-calculada
+ *   9  Peso pct             → Peso porcentual de la actividad en el total
+ *  10  Progreso_manual(0-100) → Progreso real registrado (0 a 100)
+ *                             ⚠️ En el CSV este encabezado tiene un salto
+ *                             de línea interno: "Progreso_manual\n(0–100)"
+ *                             El parser lo normaliza antes de dividir líneas.
+ *  11  Estado               → Estado textual (Completado, En curso, etc.)
+ *  12  Avance esperado      → Progreso teórico según cronograma base
+ *  13  Diferencia           → Progreso real − Avance esperado
+ *  14  Alerta retraso       → Clasificación de alerta (OK, Retraso Leve, etc.)
+ *  15  Aporte ponderado     → Contribución ponderada al total del proyecto
+ *  16  Semana proyecto      → Semana del proyecto a la que pertenece
+ *  17  Entregables_JSON     → JSON con array de entregables y sus URLs
  *
- * Retorna { actRows: [], weeklyRows: [] }
- * Filtra filas de TOTALES (id vacío) y filas completamente vacías.
- * La actividad "Diseño y estructuración del modelo técnico de documentación"
- * tiene id F1-00 y pasa el filtro normalmente.
+ * ── COLUMNAS DEL BLOQUE SEMANAL ──────────────────────────────────
+ *  19  Semana               → Número de semana
+ *  20  Fecha inicio semana  → Fecha de inicio de esa semana
+ *  21  Progreso real ponderado → Progreso real acumulado en la semana
+ *  22  Avance esperado semana  → Avance teórico acumulado en la semana
+ *  23  Diferencia semanal   → Diferencia real vs esperado en la semana
+ *  24  Alerta Semanal       → Clasificación de alerta semanal
+ *
+ * ── FILTRADO DE FILAS ────────────────────────────────────────────
+ * Se descartan filas donde ID_actividad esté vacío o el nombre
+ * contenga "total" o "progreso total" (fila de resumen del Excel).
+ *
+ * @param  {string} text — Texto crudo del CSV
+ * @returns {{ actRows: Object[], weeklyRows: Object[] }}
  */
 function parseCSVDual(text) {
-    // Normalizar saltos de línea
+    // Paso 1: eliminar el salto de línea INTERNO del encabezado col 10
+    // ANTES de dividir por líneas, porque ese salto rompería el parser.
+    // El encabezado viene como: "Progreso_manual\r\n(0–100)" o "Progreso_manual\n(0–100)"
     const normalized = text
+        .replace(/"Progreso_manual\r\n\(0[\u2013-]100\)"/g, 'Progreso_manual(0-100)')
+        .replace(/"Progreso_manual\n\(0[\u2013-]100\)"/g,    'Progreso_manual(0-100)')
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n');
 
     const lines = normalized.split('\n').filter(l => l.trim());
     if (lines.length < 2) return { actRows: [], weeklyRows: [] };
 
-    // Encabezados — normalizar a minúsculas para búsqueda insensible
-    const allHeaders = csvSplitLine(lines[0]).map(h => h.trim());
-
-    // Bloque actividades: cols 0..17
-    const actHeaders  = allHeaders.slice(0, 18);
-    // Bloque semanal: cols 19..24
-    const weekHeaders = allHeaders.slice(19, 25);
+    // Leer encabezados tal cual (sin transformar casing)
+    const allHeaders  = csvSplitLine(lines[0]).map(h => h.trim());
+    const actHeaders  = allHeaders.slice(0, 18);   // cols 0–17
+    const weekHeaders = allHeaders.slice(19, 25);  // cols 19–24
 
     const actRows    = [];
     const weeklyRows = [];
@@ -1232,23 +1258,23 @@ function parseCSVDual(text) {
     lines.slice(1).forEach(line => {
         const vals = csvSplitLine(line);
 
-        // ── Bloque actividades (cols 0-17) ──
+        // ── Bloque actividades ──────────────────────────────────
         const actObj = {};
         actHeaders.forEach((h, i) => { actObj[h] = (vals[i] || '').trim(); });
 
-        // Filtrar filas vacías o de totales (id_actividad vacío o fila de resumen)
         const id     = actObj['ID_actividad'] || '';
         const nombre = (actObj['Nombre actividad'] || '').toLowerCase();
-        const esFilaValida = id !== ''
+        const esValida = id !== ''
             && !nombre.includes('total')
             && !nombre.includes('progreso total');
 
-        if (esFilaValida) actRows.push(actObj);
+        if (esValida) actRows.push(actObj);
 
-        // ── Bloque semanal (cols 19-24) ──
+        // ── Bloque semanal ──────────────────────────────────────
         if (weekHeaders.length > 0 && vals.length > 19) {
             const wObj = {};
             weekHeaders.forEach((h, i) => { wObj[h] = (vals[19 + i] || '').trim(); });
+            // La columna "Semana" tiene mayúscula en el CSV
             if (wObj['Semana'] && !isNaN(parseInt(wObj['Semana']))) {
                 weeklyRows.push(wObj);
             }
@@ -1259,10 +1285,13 @@ function parseCSVDual(text) {
 }
 
 /**
- * Búsqueda flexible de campo en un objeto de fila CSV.
- * El parser normaliza todos los encabezados a minúsculas, así que la
- * comparación también se hace en minúsculas para máxima compatibilidad.
- * Se pueden pasar múltiples claves candidatas; retorna el primer match.
+ * Acceso flexible a un campo de una fila CSV por nombre de columna.
+ * Intenta primero coincidencia exacta, luego insensible a mayúsculas.
+ * Acepta múltiples claves candidatas y retorna el primer match.
+ *
+ * @param  {Object}    obj  — Objeto fila del CSV
+ * @param  {...string} keys — Nombres de columna a buscar (en orden de preferencia)
+ * @returns {string} Valor encontrado o string vacío
  */
 function getField(obj, ...keys) {
     for (const k of keys) {
@@ -1277,26 +1306,43 @@ function getField(obj, ...keys) {
 
 /* ---------------------------------------------------------------
    3. COLORES Y CLASES DINÁMICAS
+   Funciones que traducen valores numéricos o textuales a clases CSS
+   y colores para la representación visual del estado del proyecto.
+
+   · barClass(diff)     → clase CSS para la barra de progreso según diferencia
+   · badgeEstado(texto) → clase CSS del badge según texto de estado
+   · badgeAlerta(texto) → clase CSS del badge según texto de alerta
+   · diffColor(diff)    → color hexadecimal para textos de diferencia
 --------------------------------------------------------------- */
 
-/** Clase CSS de la barra de progreso real según diferencia */
+/**
+ * Retorna la clase CSS de la barra de progreso según la diferencia real vs esperado.
+ * Verde (real ≥ 0), amarillo (−10 a 0), rojo (< −10).
+ */
 function barClass(diff) {
     if (diff >= 0)   return 'real';
     if (diff >= -10) return 'real warn';
     return 'real crit';
 }
 
-/** Clase del badge según texto de estado */
+/**
+ * Retorna la clase CSS del badge de estado según el texto del campo Estado.
+ * Evalúa palabras clave: "adelant/complet" → verde, "tiempo/normal" → azul,
+ * "leve" → amarillo, "crít/crit/retraso" → rojo.
+ */
 function badgeEstado(estado) {
     const s = (estado || '').toLowerCase();
     if (s.includes('adelant') || s.includes('complet')) return 'badge-ok';
     if (s.includes('tiempo')  || s.includes('normal'))  return 'badge-info';
-    if (s.includes('leve'))                              return 'badge-warn';
+    if (s.includes('leve'))                               return 'badge-warn';
     if (s.includes('crít')    || s.includes('crit') || s.includes('retraso')) return 'badge-crit';
     return 'badge-neutral';
 }
 
-/** Clase del badge según texto de alerta */
+/**
+ * Retorna la clase CSS del badge de alerta según el texto del campo Alerta retraso.
+ * "crít/crit" → rojo, "leve/warn" → amarillo, vacío/ok/tiempo → verde.
+ */
 function badgeAlerta(alerta) {
     const a = (alerta || '').toLowerCase();
     if (a.includes('crít') || a.includes('crit'))        return 'badge-crit';
@@ -1305,7 +1351,10 @@ function badgeAlerta(alerta) {
     return 'badge-neutral';
 }
 
-/** Color del texto de diferencia */
+/**
+ * Retorna el color hexadecimal para textos de diferencia.
+ * Verde (≥ 0), amarillo (−10 a 0), rojo (< −10).
+ */
 function diffColor(diff) {
     if (diff >= 0)   return '#15803d';
     if (diff >= -10) return '#d97706';
@@ -1314,7 +1363,18 @@ function diffColor(diff) {
 
 /* ---------------------------------------------------------------
    4. RENDER KPI CARDS
-   Sin cambios respecto al original.
+   Calcula y renderiza los 5 indicadores clave del panel superior:
+   · Progreso Total Ponderado  — suma ponderada del progreso real
+   · Avance Esperado Total     — suma ponderada del avance teórico
+   · Diferencia Global         — real menos esperado
+   · Semana Actual             — última semana con progreso > 0
+   · Estado General            — clasificación textual del proyecto
+
+   El cálculo usa el campo "Peso pct" como factor de ponderación,
+   de modo que actividades con mayor peso tienen más impacto en el total.
+
+   @param {Object[]} acts        — Array de filas de actividades
+   @param {number}   currentWeek — Semana actual detectada
 --------------------------------------------------------------- */
 function renderKPI(acts, currentWeek) {
     let sumPeso = 0, sumReal = 0, sumEsp = 0;
@@ -1322,19 +1382,19 @@ function renderKPI(acts, currentWeek) {
     acts.forEach(r => {
         const p  = toNum(getField(r, 'Peso pct'));
         sumPeso += p;
-        sumReal += p * toNum(getField(r, 'Progreso_manual (0–100)')) / 100;
-        sumEsp  += p * toNum(getField(r, 'Avance esperado'))          / 100;
+        sumReal += p * toNum(getField(r, 'Progreso_manual(0-100)')) / 100;
+        sumEsp  += p * toNum(getField(r, 'Avance esperado'))        / 100;
     });
 
     const progTotal = sumPeso > 0 ? (sumReal / sumPeso * 100) : 0;
     const espTotal  = sumPeso > 0 ? (sumEsp  / sumPeso * 100) : 0;
     const diff      = progTotal - espTotal;
 
-    const cardCls  = diff >= 0 ? 'success' : diff >= -10 ? 'warning' : 'alert';
-    const color    = diffColor(diff);
-    const semTxt   = currentWeek ? `Semana ${currentWeek}` : '—';
-    const estadoTxt = diff >= 5  ? 'ADELANTADO'
-                    : diff >= -5 ? 'EN TIEMPO'
+    const cardCls   = diff >= 0 ? 'success' : diff >= -10 ? 'warning' : 'alert';
+    const color     = diffColor(diff);
+    const semTxt    = currentWeek ? `Semana ${currentWeek}` : '—';
+    const estadoTxt = diff >= 5   ? 'ADELANTADO'
+                    : diff >= -5  ? 'EN TIEMPO'
                     : diff >= -15 ? 'RETRASO LEVE'
                     : 'RETRASO CRÍTICO';
     const icon      = diff >= 5 ? '🚀' : diff >= -5 ? '👍' : diff >= -15 ? '🔶' : '🚨';
@@ -1374,16 +1434,27 @@ function renderKPI(acts, currentWeek) {
 
 /* ---------------------------------------------------------------
    5. RENDER ANÁLISIS POR FASE
-   Sin cambios respecto al original.
+   Agrupa las actividades por fase y calcula el progreso ponderado
+   de cada una, mostrando una barra de progreso con marcador de
+   avance esperado.
+
+   Para cada fase muestra:
+   · Número y nombre de la fase
+   · Porcentaje real vs esperado
+   · Badge de diferencia (verde/amarillo/rojo)
+   · Barra de progreso con línea vertical de referencia (esperado)
+   · Metadatos: actividades, peso total, real vs esperado
+
+   @param {Object[]} acts — Array de filas de actividades
 --------------------------------------------------------------- */
 function renderFases(acts) {
     const map = {};
     acts.forEach(r => {
         const f = getField(r, 'Fase') || 'Sin fase';
-        if (!map[f]) map[f] = { rows: [], sp: 0, sr: 0, se: 0, fechaI: getField(r, 'Fecha inicio') || '' };
+        if (!map[f]) map[f] = { rows: [], sp: 0, sr: 0, se: 0 };
         const p = toNum(getField(r, 'Peso pct'));
         map[f].sp += p;
-        map[f].sr += p * toNum(getField(r, 'Progreso_manual (0–100)')) / 100;
+        map[f].sr += p * toNum(getField(r, 'Progreso_manual(0-100)')) / 100;
         map[f].se += p * toNum(getField(r, 'Avance esperado')) / 100;
         map[f].rows.push(r);
     });
@@ -1429,27 +1500,39 @@ function renderFases(acts) {
 
 /* ---------------------------------------------------------------
    6. RENDER TABLA DE ACTIVIDADES (EXPANDIBLE)
-   ACTUALIZADO:
-   - Lee Horas_reales del CSV y calcula desviación horaria.
-   - Parsea Entregables_JSON y renderiza bloque de links.
-   - La lógica de progreso, alertas y KPIs no fue modificada.
+   Genera la tabla principal de actividades con filas expandibles.
+   Al hacer clic en una fila se despliega un panel de detalle con
+   toda la información de esa actividad.
+
+   Cada fila muestra: ID, Nombre, Fase, Semana, barra de progreso,
+   badge de Estado, diferencia numérica y badge de Alerta.
+
+   El panel de detalle (expandible) incluye:
+   · Descripción completa de la actividad
+   · Fechas de inicio y fin
+   · Horas asignadas
+   · Horas reales y desviación horaria (buildHorasRealesHTML)
+   · Peso porcentual y aporte ponderado
+   · Bloque de entregables con links (buildEntregablesHTML)
+
+   Funciones auxiliares de este bloque:
+   · buildHorasRealesHTML(horasReales, desviacion) → fragmento HTML
+   · buildEntregablesHTML(jsonStr)                 → fragmento HTML
 --------------------------------------------------------------- */
 
 /**
- * Construye el HTML del bloque de horas reales y desviación.
- * Solo se renderiza si Horas_reales tiene un valor numérico válido.
+ * Construye el HTML del bloque de horas reales y desviación horaria.
+ * La desviación viene pre-calculada en el CSV (columna "Desviacion horaria"),
+ * no se recalcula aquí para evitar inconsistencias con el Excel fuente.
  *
- * @param {string} horasAsignadas - valor de "Horas Asignadas" del CSV
- * @param {string} horasReales    - valor de "Horas_reales" del CSV
- * @returns {string} fragmento HTML o string vacío
- */
-/**
- * Construye el HTML de horas reales y desviación.
- * Recibe los valores ya procesados del CSV (desviacion_horaria viene calculada).
- * Si horas_reales está vacío, no renderiza nada.
+ * · Si "Horas reales" está vacío o no es numérico → retorna string vacío (no renderiza nada)
+ * · Desviación positiva → texto rojo  (+X horas sobre lo planificado)
+ * · Desviación negativa → texto verde (-X horas bajo lo planificado)
+ * · Desviación cero     → texto gris  (Sin desviación)
  *
- * @param {string} horasReales     - valor de columna "horas_reales"
- * @param {string} desviacionCSV   - valor de columna "desviacion_horaria" (pre-calculado en CSV)
+ * @param  {string} horasReales   — Valor de columna "Horas reales"
+ * @param  {string} desviacionCSV — Valor de columna "Desviacion horaria"
+ * @returns {string} Fragmento HTML o string vacío
  */
 function buildHorasRealesHTML(horasReales, desviacionCSV) {
     const hrVal = (horasReales || '').trim();
@@ -1465,7 +1548,6 @@ function buildHorasRealesHTML(horasReales, desviacionCSV) {
             : dev < 0
             ? `<span class="horas-desviacion-neg">${Math.abs(dev).toFixed(1)} horas bajo lo planificado</span>`
             : '<span style="color:#888;">Sin desviación</span>';
-
         devHTML = `&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Desviación horaria:</strong> ${devLabel}`;
     }
 
@@ -1473,36 +1555,36 @@ function buildHorasRealesHTML(horasReales, desviacionCSV) {
 }
 
 /**
- * Construye el HTML del bloque de entregables a partir de Entregables_JSON.
- * Si el campo está vacío o el JSON es inválido, retorna string vacío.
- * No lanza errores hacia el DOM; los registra solo en consola.
+ * Construye el HTML del bloque de entregables a partir de la columna Entregables_JSON.
+ * Cada actividad puede tener 0 o más entregables con enlace a documento.
  *
- * Formato esperado del JSON (array de objetos):
- * [
- *   { "tipo": "Ficha Técnica", "url": "https://..." },
- *   { "tipo": "Matriz Comparativa", "url": "https://..." }
- * ]
+ * · Si el campo está vacío → retorna string vacío (no renderiza el bloque)
+ * · Si el JSON es inválido → registra error en consola y retorna string vacío
+ * · Si el JSON es válido   → renderiza lista vertical de entregables con links
  *
- * @param {string} jsonStr - contenido de la columna Entregables_JSON
- * @returns {string} fragmento HTML con el bloque, o string vacío
+ * Formato esperado del JSON en la celda:
+ *   [
+ *     { "tipo": "Ficha Técnica",      "url": "https://..." },
+ *     { "tipo": "Matriz Comparativa", "url": "https://..." }
+ *   ]
+ *
+ * @param  {string} jsonStr — Contenido crudo de la columna Entregables_JSON
+ * @returns {string} Fragmento HTML con el bloque, o string vacío
  */
 function buildEntregablesHTML(jsonStr) {
     const raw = (jsonStr || '').trim();
-    if (!raw) return ''; // Campo vacío → no renderizar bloque
+    if (!raw) return '';
 
     let items;
     try {
         items = JSON.parse(raw);
     } catch (e) {
-        // JSON malformado: registrar en consola sin interrumpir la ejecución
-        console.warn('[Entregables] JSON inválido en actividad:', raw, e);
+        console.warn('[Entregables] JSON inválido:', raw, e);
         return '';
     }
 
-    // Validar que sea un array con al menos un elemento
     if (!Array.isArray(items) || items.length === 0) return '';
 
-    // Construir los ítems de la lista
     const liItems = items.map(item => {
         const tipo = item.tipo || 'Documento';
         const url  = item.url  || '#';
@@ -1520,9 +1602,7 @@ function buildEntregablesHTML(jsonStr) {
     return `
         <div class="entregables-block">
             <div class="entregables-title">📎 Entregables</div>
-            <ul class="entregables-list">
-                ${liItems}
-            </ul>
+            <ul class="entregables-list">${liItems}</ul>
         </div>`;
 }
 
@@ -1531,7 +1611,7 @@ function renderActivities(acts) {
     let rows = '';
 
     acts.forEach((row, idx) => {
-        const progReal = toNum(getField(row, 'Progreso_manual (0–100)'));
+        const progReal = toNum(getField(row, 'Progreso_manual(0-100)'));
         const espAct   = toNum(getField(row, 'Avance esperado'));
         const diff     = toNum(getField(row, 'Diferencia'));
         const bCls     = barClass(diff);
@@ -1549,17 +1629,12 @@ function renderActivities(acts) {
         const horas    = getField(row, 'Horas asignadas') || '—';
         const peso     = getField(row, 'Peso pct') || '—';
         const aporte   = getField(row, 'Aporte ponderado') || '—';
+        const horasR   = getField(row, 'Horas reales') || '';
+        const desv     = getField(row, 'Desviacion horaria') || '';
+        const entregables = getField(row, 'Entregables_JSON') || '';
 
-        // ── NUEVOS CAMPOS ──
-        // Horas reales y desviación: leídas directamente del CSV (ya calculadas)
-        const horasReales      = getField(row, 'Horas reales') || '';
-        const desviacionHoras  = getField(row, 'Desviacion horaria') || '';
-        // Entregables: leídos desde la columna "entregables_json"
-        const entregablesJson  = getField(row, 'Entregables_JSON') || '';
-
-        // Construir fragmentos adicionales
-        const horasRealesHTML  = buildHorasRealesHTML(horasReales, desviacionHoras);
-        const entregablesHTML  = buildEntregablesHTML(entregablesJson);
+        const horasRealesHTML = buildHorasRealesHTML(horasR, desv);
+        const entregablesHTML = buildEntregablesHTML(entregables);
 
         rows += `
         <tr class="act-row" data-idx="${idx}">
@@ -1628,27 +1703,34 @@ function renderActivities(acts) {
             </table>
         </div>`;
 
-    // Eventos de expansión de filas (sin cambios)
+    // Expandir / colapsar filas al hacer clic
     wrap.querySelectorAll('.act-row').forEach(tr => {
         tr.addEventListener('click', () => {
             const idx  = tr.dataset.idx;
             const desc = document.getElementById('desc-' + idx);
             const open = desc.classList.contains('open');
-
             wrap.querySelectorAll('.act-desc-row').forEach(d => d.classList.remove('open'));
             wrap.querySelectorAll('.act-row').forEach(r => r.classList.remove('expanded'));
-
-            if (!open) {
-                desc.classList.add('open');
-                tr.classList.add('expanded');
-            }
+            if (!open) { desc.classList.add('open'); tr.classList.add('expanded'); }
         });
     });
 }
 
 /* ---------------------------------------------------------------
    7. RENDER BLOQUE SEMANAL
-   Sin cambios respecto al original.
+   Genera la tabla de resumen semanal del proyecto.
+   La semana actual (detectada por la sección 8) se resalta
+   con fondo azul claro y etiqueta "EN CURSO" en rojo.
+
+   Los datos pueden provenir de dos fuentes:
+   · Bloque semanal del CSV (cols 19–24) — fuente primaria
+   · buildWeeklyFromActivities()         — fallback calculado
+
+   En ambos casos los objetos de fila tienen las mismas claves
+   que los encabezados del CSV: "Semana", "Fecha inicio semana", etc.
+
+   @param {Object[]} weekData    — Array de objetos de semana
+   @param {number}   currentWeek — Número de semana actual
 --------------------------------------------------------------- */
 function renderWeekly(weekData, currentWeek) {
     const sec = document.getElementById('weekly-section');
@@ -1660,12 +1742,12 @@ function renderWeekly(weekData, currentWeek) {
 
     let rows = '';
     weekData.forEach(r => {
-        const semana = r['Semana'] || '—';
-        const fechaI = r['Fecha inicio semana'] || '—';
+        const semana = r['Semana']                  || '—';
+        const fechaI = r['Fecha inicio semana']     || '—';
         const pReal  = toNum(r['Progreso real ponderado'] || 0);
         const pEsp   = toNum(r['Avance esperado semana']  || 0);
         const diff   = toNum(r['Diferencia semanal']      || 0);
-        const alerta = r['Alerta Semanal'] || '';
+        const alerta = r['Alerta Semanal']           || '';
         const isCurr = String(semana) === String(currentWeek);
 
         const diffHtml = diff >= 0
@@ -1711,8 +1793,24 @@ function renderWeekly(weekData, currentWeek) {
 }
 
 /* ---------------------------------------------------------------
-   8. FETCH CSV
- .
+   8. FETCH CSV PRINCIPAL
+   Gestiona la carga del archivo de datos con estrategia de fallback:
+
+   Intento 1 — datos.csv en el mismo directorio
+     · Funciona en GitHub Pages (mismo dominio, sin CORS)
+     · Funciona con servidor local (Live Server, python3 -m http.server)
+     · NO funciona con file:// directo (bloqueado por el navegador)
+
+   Intento 2 — URL raw de GitHub (fallback)
+     · Útil si el primer intento falla por alguna razón
+     · Requiere que el repositorio sea público
+
+   Si ambos fallan → muestra mensaje de error con instrucciones.
+
+   Flujo interno:
+     fetchCSV(url)           → fetch con cache: no-cache
+     procesarTextoCSV(text)  → parsea CSV y llama a todas las funciones render
+     loadCSV()               → orquesta los dos intentos
 --------------------------------------------------------------- */
 const CSV_LOCAL = 'datos.csv';
 const CSV_URL   = 'https://raw.githubusercontent.com/joanbeno/seguimiento-practica-unicauca/main/datos.csv';
@@ -1746,8 +1844,8 @@ async function procesarTextoCSV(text, fuente) {
 
     console.log(`✅ CSV cargado desde: ${fuente} | Actividades: ${actRows.length} | Semanas: ${weeklyRows.length}`);
 
-    // Detectar semana actual: última semana con progreso > 0
-    const conProgreso = actRows.filter(r => toNum(getField(r, 'Progreso_manual (0–100)')) > 0);
+    // Semana actual: la última semana que tenga progreso registrado > 0
+    const conProgreso = actRows.filter(r => toNum(getField(r, 'Progreso_manual(0-100)')) > 0);
     const currentWeek = conProgreso.length
         ? Math.max(...conProgreso.map(r => toNum(getField(r, 'Semana proyecto'))))
         : 1;
@@ -1756,6 +1854,7 @@ async function procesarTextoCSV(text, fuente) {
     renderFases(actRows);
     renderActivities(actRows);
 
+    // Usar bloque semanal del CSV si existe; si no, construirlo desde actividades
     if (weeklyRows.length > 0) {
         renderWeekly(weeklyRows, currentWeek);
     } else {
@@ -1766,26 +1865,26 @@ async function procesarTextoCSV(text, fuente) {
 async function loadCSV() {
     mostrarLoader('Cargando datos…');
 
-    // Intento 1: archivo local datos.csv
+    // Intento 1: datos.csv en el mismo directorio (GitHub Pages / servidor local)
     try {
         const text = await fetchCSV(CSV_LOCAL);
-        await procesarTextoCSV(text, 'datos.csv (local)');
+        await procesarTextoCSV(text, 'datos.csv');
         return;
     } catch(e) {
-        console.warn('datos.csv local no disponible:', e.message);
+        console.warn('datos.csv no disponible:', e.message);
     }
 
-    // Intento 2: Google Sheets público
+    // Intento 2: URL raw de GitHub como respaldo
     try {
-        mostrarLoader('Conectando con Google Sheets…');
+        mostrarLoader('Cargando desde repositorio GitHub…');
         const text = await fetchCSV(CSV_URL);
-        await procesarTextoCSV(text, 'Google Sheets');
+        await procesarTextoCSV(text, 'GitHub raw');
         return;
     } catch(e) {
-        console.error('Google Sheets falló:', e.message);
+        console.error('GitHub raw falló:', e.message);
     }
 
-    // Ambos fallaron
+    // Ambos fallaron — mostrar instrucciones
     mostrarError(
         `No se pudo cargar el CSV desde ninguna fuente.<br><br>
         <strong>Opción A (recomendada):</strong> Coloca <code>datos.csv</code> en la misma carpeta que <code>index.html</code> y abre el archivo desde un servidor local.<br>
@@ -1798,9 +1897,20 @@ async function loadCSV() {
 
 /* ---------------------------------------------------------------
    9. CONSTRUCCIÓN SEMANAL DESDE ACTIVIDADES (FALLBACK)
-   Se usa cuando el CSV no tiene bloque semanal propio.
-   Agrupa las actividades por semana y calcula progreso agregado.
-   Usa los nombres de columna actuales del CSV.
+   Se activa cuando el bloque semanal del CSV (cols 19–24) viene vacío.
+   En ese caso, agrupa las actividades por número de semana y calcula
+   el progreso ponderado de cada semana a partir de los datos de actividades.
+
+   El resultado se pasa a renderWeekly() con el mismo formato de claves
+   que usaría el bloque semanal nativo del CSV, garantizando compatibilidad.
+
+   Clasificación de alerta semanal:
+   · diff < −15 → Retraso Crítico
+   · diff <   0 → Retraso Leve
+   · diff ≥   0 → OK
+
+   @param {Object[]} acts        — Array de filas de actividades
+   @param {number}   currentWeek — Semana actual detectada
 --------------------------------------------------------------- */
 function buildWeeklyFromActivities(acts, currentWeek) {
     const map = {};
@@ -1812,8 +1922,8 @@ function buildWeeklyFromActivities(acts, currentWeek) {
         };
         const p = toNum(getField(r, 'Peso pct'));
         map[s].sp += p;
-        map[s].sr += p * toNum(getField(r, 'Progreso_manual (0–100)')) / 100;
-        map[s].se += p * toNum(getField(r, 'Avance esperado'))          / 100;
+        map[s].sr += p * toNum(getField(r, 'Progreso_manual(0-100)')) / 100;
+        map[s].se += p * toNum(getField(r, 'Avance esperado'))        / 100;
     });
 
     const weeklyRows = Object.keys(map)
@@ -1823,6 +1933,7 @@ function buildWeeklyFromActivities(acts, currentWeek) {
             const real = d.sp > 0 ? (d.sr / d.sp * 100) : 0;
             const esp  = d.sp > 0 ? (d.se / d.sp * 100) : 0;
             const diff = real - esp;
+            // Claves idénticas a los encabezados del bloque semanal del CSV
             return {
                 'Semana':                  s,
                 'Fecha inicio semana':     d.fechaI,
@@ -1830,8 +1941,8 @@ function buildWeeklyFromActivities(acts, currentWeek) {
                 'Avance esperado semana':  esp,
                 'Diferencia semanal':      diff,
                 'Alerta Semanal':          diff < -15 ? 'Retraso Crítico'
-                                         : diff <   0 ? 'Retraso Leve'
-                                         : 'OK'
+                                           : diff <   0 ? 'Retraso Leve'
+                                           : 'OK'
             };
         });
 
@@ -1840,6 +1951,8 @@ function buildWeeklyFromActivities(acts, currentWeek) {
 
 /* ---------------------------------------------------------------
    10. INICIALIZACIÓN
+   Punto de entrada del dashboard. Se ejecuta cuando el DOM está listo.
+   Llama a loadCSV() que orquesta toda la carga y render de datos.
 --------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', loadCSV);
 
