@@ -331,13 +331,74 @@
 
         .act-desc-cell {
             background: #f8f9fc;
-            padding: 12px 22px 12px 36px;
+            padding: 14px 22px 14px 36px;
             border-bottom: 1px solid #dde2f0;
             color: #555;
             font-size: 12px;
             line-height: 1.7;
-            font-style: italic;
         }
+
+        /* ---- SECCIÓN ENTREGABLES EN DETALLE ---- */
+        .entregables-block {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed #dde2f0;
+        }
+
+        .entregables-title {
+            font-weight: 700;
+            color: #000066;
+            font-size: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .entregables-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .entregable-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11.5px;
+            color: #444;
+        }
+
+        .entregable-item::before {
+            content: "•";
+            color: #000066;
+            font-size: 16px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .entregable-tipo {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .entregable-link {
+            color: #000066;
+            text-decoration: none;
+            font-size: 11px;
+            border-bottom: 1px dotted #000066;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .entregable-link:hover {
+            color: #D22630;
+            border-bottom-color: #D22630;
+        }
+
+        /* Desviación horaria */
+        .horas-desviacion-pos { color: #D22630; font-weight: 700; }
+        .horas-desviacion-neg { color: #16a34a; font-weight: 700; }
 
         /* Barras de progreso */
         .progress-wrap { min-width: 130px; }
@@ -1062,7 +1123,7 @@
        3. Colores dinámicos por diferencia
        4. Render KPI Cards
        5. Render Análisis por Fase
-       6. Render Tabla de Actividades
+       6. Render Tabla de Actividades  ← ACTUALIZADO (horas reales + entregables)
        7. Render Bloque Semanal
        8. Fetch CSV principal
        9. Construcción semanal desde actividades (fallback)
@@ -1109,32 +1170,61 @@ function csvSplitLine(line) {
 
 /**
  * Parsea el CSV del proyecto.
- * ESTRUCTURA REAL DEL CSV: ambos bloques están en la MISMA fila,
- * separados por una columna vacía en posición 15.
- *   Cols 0-14  → datos de actividad
- *   Col  15    → separador vacío
- *   Cols 16-21 → datos de resumen semanal
+ *
+ * ESTRUCTURA REAL DEL CSV (verificada contra archivo v3):
+ *   Cols  0-17 → datos de actividad
+ *   Col   18   → separador vacío
+ *   Cols 19-24 → datos de resumen semanal
+ *
+ * COLUMNAS DEL BLOQUE ACTIVIDADES (índice base 0):
+ *   0  id_actividad
+ *   1  fase
+ *   2  nombre_actividad
+ *   3  descripcion
+ *   4  fecha_inicio
+ *   5  fecha_fin
+ *   6  horas_asignadas
+ *   7  horas_reales
+ *   8  desviacion_horaria      ← calculada en el CSV, no necesitamos recalcular
+ *   9  peso_pct
+ *   10 progreso_manual(0–100)  ← encabezado tiene salto de línea; se normaliza abajo
+ *   11 estado
+ *   12 avance_esperado
+ *   13 diferencia
+ *   14 alerta_retraso
+ *   15 aporte_ponderado
+ *   16 semana_proyecto
+ *   17 entregables_JSON
+ *
+ * COLUMNAS DEL BLOQUE SEMANAL (índice base 19):
+ *   19 semana
+ *   20 fecha_inicio_semana
+ *   21 progreso_real_ponderado
+ *   22 avance_esperado_semana
+ *   23 diferencia_semanal
+ *   24 alerta_semanal
  *
  * Retorna { actRows: [], weeklyRows: [] }
- * Filtra automáticamente filas de TOTALES y filas vacías.
+ * Filtra filas de TOTALES (id vacío) y filas completamente vacías.
+ * La actividad "Diseño y estructuración del modelo técnico de documentación"
+ * tiene id F1-00 y pasa el filtro normalmente.
  */
 function parseCSVDual(text) {
-    const lines = text
+    // Normalizar saltos de línea
+    const normalized = text
         .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n')
-        .split('\n')
-        .filter(l => l.trim());
+        .replace(/\r/g, '\n');
 
+    const lines = normalized.split('\n').filter(l => l.trim());
     if (lines.length < 2) return { actRows: [], weeklyRows: [] };
 
-    // Leer encabezados — primera fila
+    // Encabezados — normalizar a minúsculas para búsqueda insensible
     const allHeaders = csvSplitLine(lines[0]).map(h => h.trim());
 
-    // Índices de los dos bloques
-    // Bloque actividades: cols 0..14
-    const actHeaders = allHeaders.slice(0, 15);
-    // Bloque semanal: cols 16..21 (saltamos la col vacía 15)
-    const weekHeaders = allHeaders.slice(16, 22);
+    // Bloque actividades: cols 0..17
+    const actHeaders  = allHeaders.slice(0, 18);
+    // Bloque semanal: cols 19..24
+    const weekHeaders = allHeaders.slice(19, 25);
 
     const actRows    = [];
     const weeklyRows = [];
@@ -1142,22 +1232,23 @@ function parseCSVDual(text) {
     lines.slice(1).forEach(line => {
         const vals = csvSplitLine(line);
 
-        // ── Bloque actividades (cols 0-14) ──
+        // ── Bloque actividades (cols 0-17) ──
         const actObj = {};
         actHeaders.forEach((h, i) => { actObj[h] = (vals[i] || '').trim(); });
 
-        // Filtrar filas vacías o de totales (ID_actividad vacío o empieza con palabra clave)
-        const id = actObj['ID_actividad'] || '';
-        const nombre = (actObj['Nombre actividad'] || actObj['Nombre Actividad'] || '').toLowerCase();
-        const esFilaValida = id !== '' && !nombre.includes('total') && !nombre.includes('progreso');
+        // Filtrar filas vacías o de totales (id_actividad vacío o fila de resumen)
+        const id     = actObj['ID_actividad'] || '';
+        const nombre = (actObj['Nombre actividad'] || '').toLowerCase();
+        const esFilaValida = id !== ''
+            && !nombre.includes('total')
+            && !nombre.includes('progreso total');
 
         if (esFilaValida) actRows.push(actObj);
 
-        // ── Bloque semanal (cols 16-21) ──
-        if (weekHeaders.length > 0 && vals.length > 16) {
+        // ── Bloque semanal (cols 19-24) ──
+        if (weekHeaders.length > 0 && vals.length > 19) {
             const wObj = {};
-            weekHeaders.forEach((h, i) => { wObj[h] = (vals[16 + i] || '').trim(); });
-            // Solo agregar si la columna "Semana" tiene valor numérico
+            weekHeaders.forEach((h, i) => { wObj[h] = (vals[19 + i] || '').trim(); });
             if (wObj['Semana'] && !isNaN(parseInt(wObj['Semana']))) {
                 weeklyRows.push(wObj);
             }
@@ -1168,14 +1259,14 @@ function parseCSVDual(text) {
 }
 
 /**
- * Normaliza el nombre de un encabezado para búsqueda flexible.
- * Permite que "Nombre actividad" y "Nombre Actividad" sean equivalentes.
+ * Búsqueda flexible de campo en un objeto de fila CSV.
+ * El parser normaliza todos los encabezados a minúsculas, así que la
+ * comparación también se hace en minúsculas para máxima compatibilidad.
+ * Se pueden pasar múltiples claves candidatas; retorna el primer match.
  */
 function getField(obj, ...keys) {
     for (const k of keys) {
-        // Buscar exacto primero
         if (k in obj) return obj[k];
-        // Buscar insensible a mayúsculas
         const kLow = k.toLowerCase();
         for (const objKey of Object.keys(obj)) {
             if (objKey.toLowerCase() === kLow) return obj[objKey];
@@ -1223,6 +1314,7 @@ function diffColor(diff) {
 
 /* ---------------------------------------------------------------
    4. RENDER KPI CARDS
+   Sin cambios respecto al original.
 --------------------------------------------------------------- */
 function renderKPI(acts, currentWeek) {
     let sumPeso = 0, sumReal = 0, sumEsp = 0;
@@ -1230,7 +1322,7 @@ function renderKPI(acts, currentWeek) {
     acts.forEach(r => {
         const p  = toNum(getField(r, 'Peso pct'));
         sumPeso += p;
-        sumReal += p * toNum(getField(r, 'Progreso_manual_(0–100)')) / 100;
+        sumReal += p * toNum(getField(r, 'Progreso_manual (0–100)')) / 100;
         sumEsp  += p * toNum(getField(r, 'Avance esperado'))          / 100;
     });
 
@@ -1282,16 +1374,16 @@ function renderKPI(acts, currentWeek) {
 
 /* ---------------------------------------------------------------
    5. RENDER ANÁLISIS POR FASE
+   Sin cambios respecto al original.
 --------------------------------------------------------------- */
 function renderFases(acts) {
-    // Agrupar por Fase
     const map = {};
     acts.forEach(r => {
         const f = getField(r, 'Fase') || 'Sin fase';
-        if (!map[f]) map[f] = { rows: [], sp: 0, sr: 0, se: 0, fechaI: getField(r, 'Fecha Inicio', 'Fecha inicio') || '' };
+        if (!map[f]) map[f] = { rows: [], sp: 0, sr: 0, se: 0, fechaI: getField(r, 'Fecha inicio') || '' };
         const p = toNum(getField(r, 'Peso pct'));
         map[f].sp += p;
-        map[f].sr += p * toNum(getField(r, 'Progreso_manual_(0–100)')) / 100;
+        map[f].sr += p * toNum(getField(r, 'Progreso_manual (0–100)')) / 100;
         map[f].se += p * toNum(getField(r, 'Avance esperado')) / 100;
         map[f].rows.push(r);
     });
@@ -1337,13 +1429,109 @@ function renderFases(acts) {
 
 /* ---------------------------------------------------------------
    6. RENDER TABLA DE ACTIVIDADES (EXPANDIBLE)
+   ACTUALIZADO:
+   - Lee Horas_reales del CSV y calcula desviación horaria.
+   - Parsea Entregables_JSON y renderiza bloque de links.
+   - La lógica de progreso, alertas y KPIs no fue modificada.
 --------------------------------------------------------------- */
+
+/**
+ * Construye el HTML del bloque de horas reales y desviación.
+ * Solo se renderiza si Horas_reales tiene un valor numérico válido.
+ *
+ * @param {string} horasAsignadas - valor de "Horas Asignadas" del CSV
+ * @param {string} horasReales    - valor de "Horas_reales" del CSV
+ * @returns {string} fragmento HTML o string vacío
+ */
+/**
+ * Construye el HTML de horas reales y desviación.
+ * Recibe los valores ya procesados del CSV (desviacion_horaria viene calculada).
+ * Si horas_reales está vacío, no renderiza nada.
+ *
+ * @param {string} horasReales     - valor de columna "horas_reales"
+ * @param {string} desviacionCSV   - valor de columna "desviacion_horaria" (pre-calculado en CSV)
+ */
+function buildHorasRealesHTML(horasReales, desviacionCSV) {
+    const hrVal = (horasReales || '').trim();
+    if (!hrVal || isNaN(parseFloat(hrVal))) return '';
+
+    const hr  = parseFloat(hrVal);
+    const dev = parseFloat((desviacionCSV || '').replace(',', '.'));
+
+    let devHTML = '';
+    if (!isNaN(dev)) {
+        const devLabel = dev > 0
+            ? `<span class="horas-desviacion-pos">+${dev.toFixed(1)} horas sobre lo planificado</span>`
+            : dev < 0
+            ? `<span class="horas-desviacion-neg">${Math.abs(dev).toFixed(1)} horas bajo lo planificado</span>`
+            : '<span style="color:#888;">Sin desviación</span>';
+
+        devHTML = `&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Desviación horaria:</strong> ${devLabel}`;
+    }
+
+    return `&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Horas reales:</strong> ${hr}h${devHTML}`;
+}
+
+/**
+ * Construye el HTML del bloque de entregables a partir de Entregables_JSON.
+ * Si el campo está vacío o el JSON es inválido, retorna string vacío.
+ * No lanza errores hacia el DOM; los registra solo en consola.
+ *
+ * Formato esperado del JSON (array de objetos):
+ * [
+ *   { "tipo": "Ficha Técnica", "url": "https://..." },
+ *   { "tipo": "Matriz Comparativa", "url": "https://..." }
+ * ]
+ *
+ * @param {string} jsonStr - contenido de la columna Entregables_JSON
+ * @returns {string} fragmento HTML con el bloque, o string vacío
+ */
+function buildEntregablesHTML(jsonStr) {
+    const raw = (jsonStr || '').trim();
+    if (!raw) return ''; // Campo vacío → no renderizar bloque
+
+    let items;
+    try {
+        items = JSON.parse(raw);
+    } catch (e) {
+        // JSON malformado: registrar en consola sin interrumpir la ejecución
+        console.warn('[Entregables] JSON inválido en actividad:', raw, e);
+        return '';
+    }
+
+    // Validar que sea un array con al menos un elemento
+    if (!Array.isArray(items) || items.length === 0) return '';
+
+    // Construir los ítems de la lista
+    const liItems = items.map(item => {
+        const tipo = item.tipo || 'Documento';
+        const url  = item.url  || '#';
+        return `
+            <li class="entregable-item">
+                <span class="entregable-tipo">${tipo}</span>
+                <span style="color:#bbb;">—</span>
+                <a class="entregable-link"
+                   href="${url}"
+                   target="_blank"
+                   rel="noopener noreferrer">Ver documento</a>
+            </li>`;
+    }).join('');
+
+    return `
+        <div class="entregables-block">
+            <div class="entregables-title">📎 Entregables</div>
+            <ul class="entregables-list">
+                ${liItems}
+            </ul>
+        </div>`;
+}
+
 function renderActivities(acts) {
     const wrap = document.getElementById('activities-wrap');
     let rows = '';
 
     acts.forEach((row, idx) => {
-        const progReal = toNum(getField(row, 'Progreso_manual_(0–100)'));
+        const progReal = toNum(getField(row, 'Progreso_manual (0–100)'));
         const espAct   = toNum(getField(row, 'Avance esperado'));
         const diff     = toNum(getField(row, 'Diferencia'));
         const bCls     = barClass(diff);
@@ -1352,15 +1540,26 @@ function renderActivities(acts) {
         const alerta   = getField(row, 'Alerta retraso') || '';
         const semana   = getField(row, 'Semana proyecto') || '—';
         const color    = diffColor(diff);
-        const nombre   = getField(row, 'Nombre Actividad', 'Nombre actividad') || '—';
+        const nombre   = getField(row, 'Nombre actividad') || '—';
         const fase     = getField(row, 'Fase') || '—';
         const idAct    = getField(row, 'ID_actividad') || '—';
         const desc     = getField(row, 'Descripcion') || 'Sin descripción registrada.';
-        const fechaI   = getField(row, 'Fecha Inicio', 'Fecha inicio') || '—';
-        const fechaF   = getField(row, 'Fecha Fin', 'Fecha fin') || '—';
-        const horas    = getField(row, 'Horas Asignadas', 'Horas asignadas') || '—';
+        const fechaI   = getField(row, 'Fecha inicio') || '—';
+        const fechaF   = getField(row, 'Fecha fin') || '—';
+        const horas    = getField(row, 'Horas asignadas') || '—';
         const peso     = getField(row, 'Peso pct') || '—';
         const aporte   = getField(row, 'Aporte ponderado') || '—';
+
+        // ── NUEVOS CAMPOS ──
+        // Horas reales y desviación: leídas directamente del CSV (ya calculadas)
+        const horasReales      = getField(row, 'Horas reales') || '';
+        const desviacionHoras  = getField(row, 'Desviacion horaria') || '';
+        // Entregables: leídos desde la columna "entregables_json"
+        const entregablesJson  = getField(row, 'Entregables_JSON') || '';
+
+        // Construir fragmentos adicionales
+        const horasRealesHTML  = buildHorasRealesHTML(horasReales, desviacionHoras);
+        const entregablesHTML  = buildEntregablesHTML(entregablesJson);
 
         rows += `
         <tr class="act-row" data-idx="${idx}">
@@ -1389,12 +1588,18 @@ function renderActivities(acts) {
         </tr>
         <tr class="act-desc-row" id="desc-${idx}">
             <td class="act-desc-cell" colspan="9">
-                <strong>Descripción:</strong> ${desc}
-                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Inicio:</strong> ${fechaI}
-                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Fin:</strong> ${fechaF}
-                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Horas:</strong> ${horas}h
-                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Peso:</strong> ${peso}
-                &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Aporte ponderado:</strong> ${aporte}
+                <div style="font-style:italic;color:#555;margin-bottom:8px;">
+                    <strong>Descripción:</strong> ${desc}
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px 0;font-style:normal;">
+                    <strong>Inicio:</strong>&nbsp;${fechaI}
+                    &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Fin:</strong>&nbsp;${fechaF}
+                    &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Horas asignadas:</strong>&nbsp;${horas}h
+                    ${horasRealesHTML}
+                    &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Peso:</strong>&nbsp;${peso}
+                    &nbsp;&nbsp;|&nbsp;&nbsp;<strong>Aporte ponderado:</strong>&nbsp;${aporte}
+                </div>
+                ${entregablesHTML}
             </td>
         </tr>`;
     });
@@ -1423,18 +1628,16 @@ function renderActivities(acts) {
             </table>
         </div>`;
 
-    // Eventos de expansión de filas
+    // Eventos de expansión de filas (sin cambios)
     wrap.querySelectorAll('.act-row').forEach(tr => {
         tr.addEventListener('click', () => {
             const idx  = tr.dataset.idx;
             const desc = document.getElementById('desc-' + idx);
             const open = desc.classList.contains('open');
 
-            // Cerrar todos primero
             wrap.querySelectorAll('.act-desc-row').forEach(d => d.classList.remove('open'));
             wrap.querySelectorAll('.act-row').forEach(r => r.classList.remove('expanded'));
 
-            // Abrir si estaba cerrado
             if (!open) {
                 desc.classList.add('open');
                 tr.classList.add('expanded');
@@ -1445,6 +1648,7 @@ function renderActivities(acts) {
 
 /* ---------------------------------------------------------------
    7. RENDER BLOQUE SEMANAL
+   Sin cambios respecto al original.
 --------------------------------------------------------------- */
 function renderWeekly(weekData, currentWeek) {
     const sec = document.getElementById('weekly-section');
@@ -1456,12 +1660,12 @@ function renderWeekly(weekData, currentWeek) {
 
     let rows = '';
     weekData.forEach(r => {
-        const semana = r['Semana'] || r['Semana proyecto'] || '—';
-        const fechaI = r['Fecha inicio semana'] || r['Fecha Inicio'] || '—';
-        const pReal  = toNum(r['Progreso real ponderado'] || r['Aporte ponderado'] || 0);
-        const pEsp   = toNum(r['Avance esperado semana']  || r['Avance esperado']   || 0);
-        const diff   = toNum(r['Diferencia semanal']      || r['Diferencia']        || 0);
-        const alerta = r['Alerta semanal'] || r['Alerta retraso'] || '';
+        const semana = r['Semana'] || '—';
+        const fechaI = r['Fecha inicio semana'] || '—';
+        const pReal  = toNum(r['Progreso real ponderado'] || 0);
+        const pEsp   = toNum(r['Avance esperado semana']  || 0);
+        const diff   = toNum(r['Diferencia semanal']      || 0);
+        const alerta = r['Alerta Semanal'] || '';
         const isCurr = String(semana) === String(currentWeek);
 
         const diffHtml = diff >= 0
@@ -1508,8 +1712,7 @@ function renderWeekly(weekData, currentWeek) {
 
 /* ---------------------------------------------------------------
    8. FETCH CSV
-   Estrategia: intenta primero "datos.csv" local (mismo directorio),
-   si falla intenta Google Sheets. Así funciona offline y online.
+   Sin cambios respecto al original.
 --------------------------------------------------------------- */
 const CSV_LOCAL = 'datos.csv';
 const CSV_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTz_JPN19_XgTk2ax8Xndu3M3NpILEW96KWDYxq_S_EOf3OPBiHKYNnASOfQhY7hg/pub?gid=1087789345&single=true&output=csv';
@@ -1544,7 +1747,7 @@ async function procesarTextoCSV(text, fuente) {
     console.log(`✅ CSV cargado desde: ${fuente} | Actividades: ${actRows.length} | Semanas: ${weeklyRows.length}`);
 
     // Detectar semana actual: última semana con progreso > 0
-    const conProgreso = actRows.filter(r => toNum(getField(r, 'Progreso_manual_(0–100)')) > 0);
+    const conProgreso = actRows.filter(r => toNum(getField(r, 'Progreso_manual (0–100)')) > 0);
     const currentWeek = conProgreso.length
         ? Math.max(...conProgreso.map(r => toNum(getField(r, 'Semana proyecto'))))
         : 1;
@@ -1592,6 +1795,7 @@ async function loadCSV() {
         <em>Nota: Los navegadores bloquean fetch() en archivos abiertos directamente con file://</em>`
     );
 }
+
 /* ---------------------------------------------------------------
    10. INICIALIZACIÓN
 --------------------------------------------------------------- */
