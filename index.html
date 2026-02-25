@@ -1712,10 +1712,10 @@ function renderWeekly(weekData, currentWeek) {
 
 /* ---------------------------------------------------------------
    8. FETCH CSV
-   Sin cambios respecto al original.
+ .
 --------------------------------------------------------------- */
 const CSV_LOCAL = 'datos.csv';
-const CSV_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZ92cSkC82V2trPSMtvHrBuGLoLdfDpUcJcm_uEJ-Z1oI_kXtiUZ71SY-8KKG16g/pub?output=csv';
+const CSV_URL   = 'https://raw.githubusercontent.com/joanbeno/seguimiento-practica-unicauca/main/datos.csv';
 
 function mostrarError(msg) {
     const html = `<div class="csv-error">⚠️ ${msg}</div>`;
@@ -1794,6 +1794,48 @@ async function loadCSV() {
         y accede a <code>http://localhost:8080</code><br><br>
         <em>Nota: Los navegadores bloquean fetch() en archivos abiertos directamente con file://</em>`
     );
+}
+
+/* ---------------------------------------------------------------
+   9. CONSTRUCCIÓN SEMANAL DESDE ACTIVIDADES (FALLBACK)
+   Se usa cuando el CSV no tiene bloque semanal propio.
+   Agrupa las actividades por semana y calcula progreso agregado.
+   Usa los nombres de columna actuales del CSV.
+--------------------------------------------------------------- */
+function buildWeeklyFromActivities(acts, currentWeek) {
+    const map = {};
+    acts.forEach(r => {
+        const s = getField(r, 'Semana proyecto') || '0';
+        if (!map[s]) map[s] = {
+            sp: 0, sr: 0, se: 0,
+            fechaI: getField(r, 'Fecha inicio') || '—'
+        };
+        const p = toNum(getField(r, 'Peso pct'));
+        map[s].sp += p;
+        map[s].sr += p * toNum(getField(r, 'Progreso_manual (0–100)')) / 100;
+        map[s].se += p * toNum(getField(r, 'Avance esperado'))          / 100;
+    });
+
+    const weeklyRows = Object.keys(map)
+        .sort((a, b) => +a - +b)
+        .map(s => {
+            const d    = map[s];
+            const real = d.sp > 0 ? (d.sr / d.sp * 100) : 0;
+            const esp  = d.sp > 0 ? (d.se / d.sp * 100) : 0;
+            const diff = real - esp;
+            return {
+                'Semana':                  s,
+                'Fecha inicio semana':     d.fechaI,
+                'Progreso real ponderado': real,
+                'Avance esperado semana':  esp,
+                'Diferencia semanal':      diff,
+                'Alerta Semanal':          diff < -15 ? 'Retraso Crítico'
+                                         : diff <   0 ? 'Retraso Leve'
+                                         : 'OK'
+            };
+        });
+
+    renderWeekly(weeklyRows, currentWeek);
 }
 
 /* ---------------------------------------------------------------
