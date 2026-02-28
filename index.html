@@ -748,6 +748,73 @@
             .tab-section { display: block !important; }
         }
 
+
+
+        /* ============================================================
+           ENTREGABLES EN CRONOGRAMA — ESTÁTICO CON DATOS DINÁMICOS
+           Solo se cargan tipo y link desde CSV.
+           Hover en todos los .deliverable.
+           📎 y dropdown solo si tiene entregables.
+        ============================================================ */
+        .deliverable { cursor: default; position: relative; }
+
+        .deliverable[data-act-id] { cursor: pointer; }
+
+        .deliverable-clip {
+            margin-left: 6px;
+            font-size: 13px;
+            vertical-align: middle;
+            opacity: 0.8;
+        }
+
+        .deliverable-panel {
+            display: none;
+            background: #f0f2fa;
+            border-left: 3px solid #000066;
+            border-radius: 0 6px 6px 6px;
+            padding: 10px 14px;
+            margin-top: 6px;
+            animation: slideDown 0.2s ease;
+        }
+
+        .deliverable-panel.visible { display: block; }
+
+        .deliverable-panel ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .deliverable-panel li {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11.5px;
+            color: #444;
+        }
+
+        .deliverable-panel li::before {
+            content: "•";
+            color: #000066;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .deliverable-panel-tipo { font-weight: 600; color: #333; }
+
+        .deliverable-panel-link {
+            color: #000066;
+            text-decoration: none;
+            font-size: 11px;
+            border-bottom: 1px dotted #000066;
+            transition: color 0.15s;
+        }
+
+        .deliverable-panel-link:hover {
+            color: #D22630;
+            border-bottom-color: #D22630;
+        }
     </style>
 </head>
 <body>
@@ -790,7 +857,7 @@
     ============================================================ -->
     <div class="nav-tabs">
         <button class="nav-tab active" data-tab="tab-seguimiento">📊 Seguimiento en Tiempo Real</button>
-        <button class="nav-tab" data-tab="tab-cronograma">📅 Cronograma Pre-Aprobado</button>
+        <button class="nav-tab" data-tab="tab-cronograma">📅 Cronograma</button>
     </div>
 
     <!-- ============================================================
@@ -951,6 +1018,7 @@
                     </div>
                     <div class="deliverables-section">
                         <div class="section-title">📦 Entregables Parciales</div>
+                        <div class="deliverable" data-act-id="F1-00">Diseño y estructuración del modelo técnico de documentación</div>
                         <div class="deliverable">Fichas técnicas de 6-8 herramientas conocidas por el practicante</div>
                         <div class="deliverable">Investigación complementaria de 4-5 herramientas adicionales relevantes</div>
                         <div class="deliverable"><strong>Total: 10-12 herramientas de IA documentadas</strong></div>
@@ -1103,6 +1171,8 @@
             </div>
 
         </div>
+
+        </div>
     </div><!-- /tab-cronograma -->
 
     <!-- ============================================================
@@ -1135,7 +1205,7 @@
    1. NAVEGACIÓN POR PESTAÑAS
    Gestiona la visibilidad de las dos pestañas principales:
    · "Seguimiento en Tiempo Real" (tab-seguimiento) — carga CSV
-   · "Cronograma Pre-Aprobado"   (tab-cronograma)  — estático
+   · "Cronograma"   (tab-cronograma)  — estático + sección dinámica de actividades
    Aplica clase "active" al tab y a la sección correspondiente.
 --------------------------------------------------------------- */
 document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -1716,6 +1786,91 @@ function renderActivities(acts) {
     });
 }
 
+
+/* ---------------------------------------------------------------
+   6b. INIT ENTREGABLES EN CRONOGRAMA — TAB 2
+   Propósito: Enriquecer el HTML estático del Cronograma con datos
+   del CSV ya cargado. NO modifica el HTML estático ni su diseño.
+   Solo añade:
+     · Ícono 📎 junto al texto si la actividad tiene entregables.
+     · Dropdown con tipo + link al hacer click.
+     · Hover en TODOS los .deliverable (con o sin entregables).
+   
+   Parámetros:
+     · acts {Array} — filas de actividades ya parseadas del CSV.
+   
+   Dependencias:
+     · getField()       — lectura insensible de columnas.
+     · window.entMap    — mapa {ID_actividad: [{tipo, link}]} creado aquí.
+   
+   Reglas:
+     · Sin entregables en CSV → sin 📎, sin listener, sin panel.
+     · Solo lee 'tipo' y 'link' del JSON. Nada más del CSV.
+     · No toca KPIs, parser ni cálculos.
+--------------------------------------------------------------- */
+function initCronogramaEntregables(acts) {
+
+    // Construir mapa de entregables por ID de actividad
+    window.entMap = {};
+    acts.forEach(r => {
+        const id    = getField(r, 'ID_actividad') || '';
+        const ejson = (getField(r, 'Entregables_JSON') || '').trim();
+        if (!id || !ejson) return;
+        try {
+            const parsed = JSON.parse(ejson);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                window.entMap[id] = parsed;
+            }
+        } catch(e) {
+            console.warn('[initCronogramaEntregables] JSON inválido en', id, e);
+        }
+    });
+
+    // Enriquecer cada .deliverable[data-act-id] que tenga entregables
+    document.querySelectorAll('.deliverable[data-act-id]').forEach(el => {
+        const actId      = el.dataset.actId;
+        const entregables = window.entMap[actId];
+        if (!entregables || entregables.length === 0) return;
+
+        // Agregar ícono 📎
+        const clip = document.createElement('span');
+        clip.className   = 'deliverable-clip';
+        clip.textContent = '📎';
+        el.appendChild(clip);
+
+        // Crear panel desplegable (tipo + link únicamente)
+        const panel = document.createElement('div');
+        panel.className = 'deliverable-panel';
+        panel.id        = 'dp-' + actId;
+
+        const liItems = entregables.map(item => {
+            const tipo = item.tipo || 'Documento';
+            const url  = item.link || item.url || '#';
+            return `<li>
+                <span class="deliverable-panel-tipo">${tipo}</span>
+                <span style="color:#bbb;">—</span>
+                <a class="deliverable-panel-link" href="${url}" target="_blank" rel="noopener noreferrer">Ver documento</a>
+            </li>`;
+        }).join('');
+
+        panel.innerHTML = `<ul>${liItems}</ul>`;
+
+        // Insertar panel después del deliverable
+        el.parentNode.insertBefore(panel, el.nextSibling);
+
+        // Asociar click toggle
+        el.addEventListener('click', () => {
+            const abierto = panel.classList.contains('visible');
+
+            // Cerrar todos los paneles abiertos
+            document.querySelectorAll('.deliverable-panel.visible').forEach(p => p.classList.remove('visible'));
+
+            // Abrir este si estaba cerrado
+            if (!abierto) panel.classList.add('visible');
+        });
+    });
+}
+
 /* ---------------------------------------------------------------
    7. RENDER BLOQUE SEMANAL
    Genera la tabla de resumen semanal del proyecto.
@@ -1853,6 +2008,7 @@ async function procesarTextoCSV(text, fuente) {
     renderKPI(actRows, currentWeek);
     renderFases(actRows);
     renderActivities(actRows);
+    initCronogramaEntregables(actRows);     // 📎 y dropdown en Tab 2 Cronograma
 
     // Usar bloque semanal del CSV si existe; si no, construirlo desde actividades
     if (weeklyRows.length > 0) {
