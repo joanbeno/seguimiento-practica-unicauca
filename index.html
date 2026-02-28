@@ -1243,14 +1243,26 @@ function toNum(v) {
  * ⚠️ NO MODIFICAR — lógica probada y estable.
  */
 function csvSplitLine(line) {
+    // Maneja comillas dobles escapadas ("") dentro de campos CSV
+    // y preserva el contenido de campos entre comillas sin modificar.
     const out = [];
     let cur = '';
     let inQ = false;
     for (let i = 0; i < line.length; i++) {
         const c = line[i];
-        if (c === '"')              { inQ = !inQ; }
-        else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
-        else                        { cur += c; }
+        if (c === '"') {
+            if (inQ && line[i + 1] === '"') {
+                cur += '"';   // comilla escapada "" → un solo "
+                i++;
+            } else {
+                inQ = !inQ;   // abrir o cerrar campo entre comillas
+            }
+        } else if (c === ',' && !inQ) {
+            out.push(cur);
+            cur = '';
+        } else {
+            cur += c;
+        }
     }
     out.push(cur);
     return out;
