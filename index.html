@@ -1587,7 +1587,7 @@ function buildEntregablesHTML(jsonStr) {
 
     const liItems = items.map(item => {
         const tipo = item.tipo || 'Documento';
-        const url  = item.url  || '#';
+        const url  = item.link || item.url || '#';  // CSV usa 'link', fallback a 'url'
         return `
             <li class="entregable-item">
                 <span class="entregable-tipo">${tipo}</span>
