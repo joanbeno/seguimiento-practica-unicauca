@@ -697,8 +697,90 @@
 
         .legend-text { font-size: 12px; color: #444; }
 
-        /* ---- FOOTER ---- */
-        .footer { background: #000066; color: white; padding: 22px; text-align: center; }
+        /* ---- BARRA DE ESTADO DE DATOS ---- */
+        .data-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fc;
+            border: 1px solid #e8ecf5;
+            border-radius: 8px;
+            padding: 8px 14px;
+            margin-bottom: 22px;
+            gap: 12px;
+        }
+
+        .data-status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #16a34a;
+            flex-shrink: 0;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #000066;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-family: Tahoma, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+            white-space: nowrap;
+        }
+
+        .refresh-btn:hover { background: #0000aa; transform: translateY(-1px); }
+        .refresh-btn:active { transform: translateY(0); }
+
+        /* ---- MEJORAS KPI CARDS ---- */
+        .kpi-card {
+            animation: fadeInUp 0.4s ease both;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Delay escalonado para las cards */
+        .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.20s; }
+        .kpi-card:nth-child(5) { animation-delay: 0.25s; }
+
+        /* ---- TABLA ACTIVIDADES: FILAS ALTERNADAS ---- */
+        .activities-table tbody tr.act-row:nth-child(4n+1),
+        .activities-table tbody tr.act-row:nth-child(4n+2) {
+            background: #fafbff;
+        }
+
+        /* ---- MEJORA SECCIÓN TÍTULOS ---- */
+        .section-block-title {
+            gap: 10px;
+        }
+
+        .section-block-title svg {
+            flex-shrink: 0;
+        }
         .footer-main { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
         .footer-sub  { font-size: 11px; opacity: 0.7; }
 
@@ -856,8 +938,14 @@
          NAVEGACIÓN INTERNA
     ============================================================ -->
     <div class="nav-tabs">
-        <button class="nav-tab active" data-tab="tab-seguimiento">📊 Seguimiento en Tiempo Real</button>
-        <button class="nav-tab" data-tab="tab-cronograma">📅 Cronograma</button>
+        <button class="nav-tab active" data-tab="tab-seguimiento">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Seguimiento en Tiempo Real
+        </button>
+        <button class="nav-tab" data-tab="tab-cronograma">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Cronograma
+        </button>
     </div>
 
     <!-- ============================================================
@@ -866,8 +954,23 @@
     <div id="tab-seguimiento" class="tab-section active">
         <div class="content">
 
+            <!-- Barra de estado de conexión -->
+            <div class="data-status-bar">
+                <div class="data-status-left">
+                    <span class="status-dot"></span>
+                    <span id="last-update" style="font-size:11px;color:#888;">Conectando con Google Sheets…</span>
+                </div>
+                <button class="refresh-btn" onclick="loadCSV()" title="Actualizar datos desde Google Sheets">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    Actualizar
+                </button>
+            </div>
+
             <!-- Panel KPI -->
-            <div class="section-block-title">📌 Indicadores de Progreso</div>
+            <div class="section-block-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                Indicadores de Progreso
+            </div>
             <div class="kpi-panel" id="kpi-panel">
                 <div class="csv-loader" style="grid-column:1/-1;">
                     <div class="spinner"></div>
@@ -876,19 +979,28 @@
             </div>
 
             <!-- Análisis por Fase -->
-            <div class="section-block-title" style="margin-top:4px;">🗂️ Avance por Fase</div>
+            <div class="section-block-title" style="margin-top:4px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Avance por Fase
+            </div>
             <div class="fase-analysis" id="fase-analysis">
                 <div class="csv-loader"><div class="spinner"></div><div>Cargando fases…</div></div>
             </div>
 
             <!-- Tabla de Actividades -->
-            <div class="section-block-title">📋 Tabla de Actividades</div>
+            <div class="section-block-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Tabla de Actividades
+            </div>
             <div class="activities-table-wrap" id="activities-wrap">
                 <div class="csv-loader"><div class="spinner"></div><div>Cargando actividades…</div></div>
             </div>
 
             <!-- Bloque Semanal -->
-            <div class="section-block-title">📆 Resumen Ejecutivo Semanal</div>
+            <div class="section-block-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Resumen Ejecutivo Semanal
+            </div>
             <div class="weekly-section" id="weekly-section">
                 <div class="csv-loader"><div class="spinner"></div><div>Procesando semanas…</div></div>
             </div>
@@ -904,7 +1016,10 @@
 
             <!-- GANTT — ORIGINAL -->
             <div class="gantt-section">
-                <div class="gantt-title">📊 Diagrama de Gantt — Cronograma General</div>
+                <div class="gantt-title">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    Diagrama de Gantt — Cronograma General
+                </div>
                 <div class="gantt-chart">
                     <div class="gantt-header">
                         <div class="gantt-header-phase">Fase</div>
@@ -1006,9 +1121,18 @@
                     <div class="phase-info">
                         <div class="phase-title">Documentación de Herramientas de IA</div>
                         <div class="phase-meta">
-                            <span class="meta-item">📅 Semanas 1-6</span>
-                            <span class="meta-item">⏱️ 72 horas</span>
-                            <span class="meta-item">📊 37.5% del tiempo</span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                Semanas 1-6
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                72 horas
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                37.5% del tiempo
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1017,7 +1141,7 @@
                         Sistematizar el conocimiento existente sobre plataformas, asistentes de IA y herramientas de automatización aplicables a procesos de formulación y evaluación de proyectos de inversión pública. Documentar funcionalidades, casos de uso, ventajas y limitaciones técnicas de cada herramienta identificada.
                     </div>
                     <div class="deliverables-section">
-                        <div class="section-title">📦 Entregables Parciales</div>
+                        <div class="section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Entregables Parciales</div>
                         <div class="deliverable" data-act-id="F1-00">Diseño y estructuración del modelo técnico de documentación</div>
                         <div class="deliverable">Fichas técnicas de 6-8 herramientas conocidas por el practicante</div>
                         <div class="deliverable">Investigación complementaria de 4-5 herramientas adicionales relevantes</div>
@@ -1035,9 +1159,18 @@
                     <div class="phase-info">
                         <div class="phase-title">Diseño de Flujos de Trabajo con IA</div>
                         <div class="phase-meta">
-                            <span class="meta-item">📅 Semanas 7-11</span>
-                            <span class="meta-item">⏱️ 60 horas</span>
-                            <span class="meta-item">📊 31% del tiempo</span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                Semanas 7-11
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                60 horas
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                31% del tiempo
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1046,7 +1179,7 @@
                         Proponer esquemas de flujos de trabajo que ilustren cómo la inteligencia artificial podría integrarse en procesos clave de gestión de proyectos públicos. Diseñar diagramas comparativos mostrando el proceso actual versus el proceso propuesto con IA, identificando puntos específicos de automatización.
                     </div>
                     <div class="deliverables-section">
-                        <div class="section-title">📦 Entregables Parciales</div>
+                        <div class="section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Entregables Parciales</div>
                         <div class="deliverable">Diagrama de flujo: Análisis automático de coherencia en matrices de marco lógico</div>
                         <div class="deliverable">Diagrama de flujo: Extracción automática de indicadores desde documentos técnicos</div>
                         <div class="deliverable">Diagrama de flujo: Verificación de cumplimiento normativo (MGA/DNP)</div>
@@ -1062,9 +1195,18 @@
                     <div class="phase-info">
                         <div class="phase-title">Diseño Conceptual de Pruebas Piloto</div>
                         <div class="phase-meta">
-                            <span class="meta-item">📅 Semanas 12-14</span>
-                            <span class="meta-item">⏱️ 36 horas</span>
-                            <span class="meta-item">📊 18.75% del tiempo</span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                Semanas 12-14
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                36 horas
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                18.75% del tiempo
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1073,14 +1215,14 @@
                         Asesorar técnicamente en el diseño conceptual de 1-2 pruebas piloto de implementación de IA en procesos de formulación/evaluación de proyectos. Definir alcance, objetivos específicos, flujo funcional detallado, requisitos técnicos básicos y criterios de evaluación de resultados.
                     </div>
                     <div class="deliverables-section">
-                        <div class="section-title">📦 Entregables Parciales</div>
+                        <div class="section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Entregables Parciales</div>
                         <div class="deliverable">Propuesta de Piloto #1: Alcance, objetivos y flujo funcional detallado</div>
                         <div class="deliverable">Propuesta de Piloto #2 (opcional): Caso de uso alternativo</div>
                         <div class="deliverable">Especificación de requisitos técnicos mínimos para implementación</div>
                         <div class="deliverable">Criterios de evaluación y métricas de éxito del piloto</div>
                     </div>
                     <div class="warning-box">
-                        <span class="warning-icon">⚠️</span>
+                        <span class="warning-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
                         <div class="warning-text">
                             <strong>Nota aclaratoria importante:</strong> El desarrollo técnico (programación, adquisición de infraestructura, implementación efectiva) queda expresamente fuera del alcance de esta práctica académica y será responsabilidad del investigador principal.
                         </div>
@@ -1095,9 +1237,18 @@
                     <div class="phase-info">
                         <div class="phase-title">Transferencia de Conocimiento y Cierre</div>
                         <div class="phase-meta">
-                            <span class="meta-item">📅 Semanas 15-16</span>
-                            <span class="meta-item">⏱️ 24 horas</span>
-                            <span class="meta-item">📊 12.5% del tiempo</span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                Semanas 15-16
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                24 horas
+                            </span>
+                            <span class="meta-item">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                12.5% del tiempo
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -1106,7 +1257,7 @@
                         Realizar sesiones de trabajo colaborativo con el asesor académico para transferir conocimiento práctico sobre funcionamiento real de asistentes de IA, arquitectura de flujos de automatización, viabilidad técnica de implementaciones y consideraciones críticas para implementación en contextos de sector público. Consolidar todos los hallazgos en el informe final ejecutivo.
                     </div>
                     <div class="deliverables-section">
-                        <div class="section-title">📦 Entregables Finales</div>
+                        <div class="section-title"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Entregables Finales</div>
                         <div class="deliverable">3-4 sesiones de consultoría técnica (memoria de cada sesión)</div>
                         <div class="deliverable">Catálogo Técnico de Herramientas de IA (12-15 páginas) — <strong>10-12 herramientas documentadas</strong></div>
                         <div class="deliverable">Propuesta de Flujos de Trabajo con IA (conjunto de diagramas)</div>
@@ -1118,7 +1269,7 @@
 
             <!-- RESUMEN EJECUTIVO — ORIGINAL -->
             <div class="summary-section">
-                <div class="summary-title">📊 Resumen Ejecutivo de la Práctica</div>
+                <div class="summary-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Resumen Ejecutivo de la Práctica</div>
                 <div class="summary-grid">
                     <div class="summary-card">
                         <div class="summary-card-title">Fases de Trabajo</div>
@@ -1145,7 +1296,7 @@
 
             <!-- LEYENDA TIEMPO — ORIGINAL -->
             <div class="timeline-legend">
-                <div class="legend-title">📌 Distribución de Tiempo Estimada</div>
+                <div class="legend-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Distribución de Tiempo Estimada</div>
                 <div class="legend-grid">
                     <div class="legend-item">
                         <div class="legend-color" style="background:#000066;"></div>
@@ -1180,7 +1331,7 @@
     ============================================================ -->
     <div class="footer">
         <div class="footer-main">Práctica Académica &nbsp;·&nbsp; Primer Semestre 2026</div>
-        <div class="footer-sub">Programa de Administración de Empresas &nbsp;·&nbsp; Universidad del Cauca</div>
+        <div class="footer-sub">Programa de Administración de Empresas &nbsp;·&nbsp; Universidad del Cauca &nbsp;·&nbsp; © 2026 Joan Nicolas Benavides Orozco</div>
     </div>
 
 </div><!-- /.container -->
@@ -1479,37 +1630,37 @@ function renderKPI(acts, currentWeek) {
                     : diff >= -5  ? 'EN TIEMPO'
                     : diff >= -15 ? 'RETRASO LEVE'
                     : 'RETRASO CRÍTICO';
-    const icon      = diff >= 5 ? '🚀' : diff >= -5 ? '👍' : diff >= -15 ? '🔶' : '🚨';
+    const icon      = '';
 
     document.getElementById('kpi-panel').innerHTML = `
         <div class="kpi-card info">
             <div class="kpi-label">Progreso Total Ponderado</div>
             <div class="kpi-value">${progTotal.toFixed(1)}<span style="font-size:17px;">%</span></div>
             <div class="kpi-sub">Avance real acumulado</div>
-            <div class="kpi-trend">📈</div>
+            <div class="kpi-trend"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#16a34a\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"23 6 13.5 15.5 8.5 10.5 1 18\"/><polyline points=\"17 6 23 6 23 12\"/></svg></div>
         </div>
         <div class="kpi-card info">
             <div class="kpi-label">Avance Esperado Total</div>
             <div class="kpi-value">${espTotal.toFixed(1)}<span style="font-size:17px;">%</span></div>
             <div class="kpi-sub">Según cronograma base</div>
-            <div class="kpi-trend">🎯</div>
+            <div class="kpi-trend"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000066\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><circle cx=\"12\" cy=\"12\" r=\"6\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/></svg></div>
         </div>
         <div class="kpi-card ${cardCls}">
             <div class="kpi-label">Diferencia Global</div>
             <div class="kpi-value" style="color:${color};">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}<span style="font-size:17px;">%</span></div>
             <div class="kpi-sub">${diff >= 0 ? '▲ Por encima del plan' : '▼ Por debajo del plan'}</div>
-            <div class="kpi-trend">${diff >= 0 ? '✅' : '⚠️'}</div>
+            <div class="kpi-trend">${diff >= 0 ? '<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000066\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"20 6 9 17 4 12\"/></svg>' : '<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#d97706\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"/><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"/><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"/></svg>'}</div>
         </div>
         <div class="kpi-card info">
             <div class="kpi-label">Semana Actual</div>
             <div class="kpi-value" style="font-size:24px;">${semTxt}</div>
             <div class="kpi-sub">Primer Semestre 2026</div>
-            <div class="kpi-trend">📅</div>
+            <div class="kpi-trend"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000066\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg></div>
         </div>
         <div class="kpi-card ${cardCls}">
             <div class="kpi-label">Estado General</div>
             <div class="kpi-value" style="font-size:19px;color:${color};">${estadoTxt}</div>
-            <div class="kpi-sub">${acts.length} actividades · ${icon}</div>
+            <div class="kpi-sub">${acts.length} actividades registradas</div>
         </div>
     `;
 }
@@ -1683,7 +1834,7 @@ function buildEntregablesHTML(jsonStr) {
 
     return `
         <div class="entregables-block">
-            <div class="entregables-title">📎 Entregables</div>
+            <div class="entregables-title"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#000066\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48\"/></svg> Entregables</div>
             <ul class="entregables-list">${liItems}</ul>
         </div>`;
 }
@@ -1847,7 +1998,7 @@ function initCronogramaEntregables(acts) {
         // Agregar ícono 📎
         const clip = document.createElement('span');
         clip.className   = 'deliverable-clip';
-        clip.textContent = '📎';
+        clip.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000066" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-left:4px;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
         el.appendChild(clip);
 
         // Crear panel desplegable (tipo + link únicamente)
@@ -1979,8 +2130,8 @@ function renderWeekly(weekData, currentWeek) {
      procesarTextoCSV(text)  → parsea CSV y llama a todas las funciones render
      loadCSV()               → orquesta los dos intentos
 --------------------------------------------------------------- */
-const CSV_LOCAL = 'datos.csv';
-const CSV_URL   = 'https://raw.githubusercontent.com/joanbeno/seguimiento-practica-unicauca/main/datos.csv';
+const CSV_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbym-iYvNbVkZ1m4mS2ra0rcnFJxeRjBrCz9ijbGHOMZ8JdJZn3EwKwFLbvJO6WlE6ru/exec';
+const CSV_URL         = 'https://raw.githubusercontent.com/joanbeno/seguimiento-practica-unicauca/main/datos.csv'; // fallback
 
 function mostrarError(msg) {
     const html = `<div class="csv-error">⚠️ ${msg}</div>`;
@@ -2030,37 +2181,46 @@ async function procesarTextoCSV(text, fuente) {
     }
 }
 
-async function loadCSV() {
-    mostrarLoader('Cargando datos…');
+async function loadCSV(silencioso = false) {
+    if (!silencioso) mostrarLoader('Conectando con Google Sheets…');
 
-    // Intento 1: datos.csv en el mismo directorio (GitHub Pages / servidor local)
+    // Intento 1: Apps Script Web App (fuente primaria — Google Sheets en tiempo real)
     try {
-        const text = await fetchCSV(CSV_LOCAL);
-        await procesarTextoCSV(text, 'datos.csv');
+        const text = await fetchCSV(CSV_APPS_SCRIPT);
+        await procesarTextoCSV(text, 'Google Sheets');
+        actualizarTimestamp();
         return;
     } catch(e) {
-        console.warn('datos.csv no disponible:', e.message);
+        console.warn('Apps Script no disponible:', e.message);
     }
 
-    // Intento 2: URL raw de GitHub como respaldo
+    // Intento 2: URL raw de GitHub como fallback
     try {
-        mostrarLoader('Cargando desde repositorio GitHub…');
+        if (!silencioso) mostrarLoader('Apps Script no disponible — cargando desde GitHub…');
         const text = await fetchCSV(CSV_URL);
-        await procesarTextoCSV(text, 'GitHub raw');
+        await procesarTextoCSV(text, 'GitHub (fallback)');
+        actualizarTimestamp('GitHub');
         return;
     } catch(e) {
         console.error('GitHub raw falló:', e.message);
     }
 
-    // Ambos fallaron — mostrar instrucciones
+    // Ambos fallaron
     mostrarError(
-        `No se pudo cargar el CSV desde ninguna fuente.<br><br>
-        <strong>Opción A (recomendada):</strong> Coloca <code>datos.csv</code> en la misma carpeta que <code>index.html</code> y abre el archivo desde un servidor local.<br>
-        <strong>Opción B:</strong> Abre con Live Server en VS Code, o ejecuta en terminal:<br>
-        <code style="background:#f1f5f9;padding:4px 8px;border-radius:4px;">python3 -m http.server 8080</code><br>
-        y accede a <code>http://localhost:8080</code><br><br>
-        <em>Nota: Los navegadores bloquean fetch() en archivos abiertos directamente con file://</em>`
+        `No se pudo conectar con ninguna fuente de datos.<br><br>
+        Verifica que el Apps Script Web App esté activo y tenga acceso público.<br>
+        <em>Si el problema persiste, revisa la consola del navegador para más detalles.</em>`
     );
+}
+
+function actualizarTimestamp(fuente = 'Google Sheets') {
+    const el = document.getElementById('last-update');
+    if (!el) return;
+    const now = new Date();
+    const hora = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const fecha = now.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+    el.textContent = `Actualizado: ${fecha} ${hora} · Fuente: ${fuente}`;
+    el.style.color = fuente === 'Google Sheets' ? '#16a34a' : '#d97706';
 }
 
 /* ---------------------------------------------------------------
@@ -2122,11 +2282,12 @@ function buildWeeklyFromActivities(acts, currentWeek) {
    Punto de entrada del dashboard. Se ejecuta cuando el DOM está listo.
    Llama a loadCSV() que orquesta toda la carga y render de datos.
 --------------------------------------------------------------- */
-document.addEventListener('DOMContentLoaded', loadCSV);
+document.addEventListener('DOMContentLoaded', () => {
+    loadCSV();
+    // Auto-refresh silencioso cada 5 minutos
+    setInterval(() => loadCSV(true), 5 * 60 * 1000);
+});
 
 </script>
 </body>
 </html>
-<footer style="text-align:center; font-family: Arial, sans-serif; font-size: 12px; color: #555; margin-top: 20px;">
-    © 2026 Joan Nicolas Benavides Orozco. Todos los derechos reservados.
-</footer>
