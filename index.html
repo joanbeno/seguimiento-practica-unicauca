@@ -2162,11 +2162,11 @@ async function procesarTextoCSV(text, fuente) {
 
     console.log(`✅ CSV cargado desde: ${fuente} | Actividades: ${actRows.length} | Semanas: ${weeklyRows.length}`);
 
-    // Semana actual: la última semana que tenga progreso registrado > 0
-    const conProgreso = actRows.filter(r => toNum(getField(r, 'Progreso_manual(0-100)')) > 0);
-    const currentWeek = conProgreso.length
-        ? Math.max(...conProgreso.map(r => toNum(getField(r, 'Semana proyecto'))))
-        : 1;
+    // Semana actual: calculada desde la fecha de inicio del proyecto
+    const FECHA_INICIO = new Date('2026-02-16');
+    const hoy = new Date();
+    const diasTranscurridos = Math.floor((hoy - FECHA_INICIO) / (1000 * 60 * 60 * 24));
+    const currentWeek = Math.min(16, Math.max(1, Math.ceil((diasTranscurridos + 1) / 7)));
 
     renderKPI(actRows, currentWeek);
     renderFases(actRows);
