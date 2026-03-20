@@ -1474,6 +1474,7 @@ function parseCSVDual(text) {
     const normalized = text
         .replace(/"Progreso_manual\r\n\(0[\u2013-]100\)"/g, 'Progreso_manual(0-100)')
         .replace(/"Progreso_manual\n\(0[\u2013-]100\)"/g,    'Progreso_manual(0-100)')
+        .replace(/Progreso_manual \(0[\u2013-]100\)/g,       'Progreso_manual(0-100)')
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n');
 
